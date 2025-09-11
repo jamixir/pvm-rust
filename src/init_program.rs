@@ -1,6 +1,6 @@
 use rustler::Binary;
 
-use crate::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZI, ZP, ZZ};
+use crate::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
 use crate::memory::{Memory, Permission};
 
 pub struct ProgramSegments<'a> {

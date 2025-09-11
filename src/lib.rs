@@ -1,38 +1,39 @@
-use rustler::{Env, Term, Encoder, Binary};
-rustler::init!("Elixir.Pvm.Native");
+use rustler::{Binary, Encoder, Env, Term};
 
+use crate::decoder::{deblob};
 use crate::init_program::initialize_program;
+use crate::vm::Vm;
 mod consts;
+mod init_program;
 mod memory;
 mod vm;
-mod init_program;
+mod decoder;
+mod encoder;
 
+rustler::init!("Elixir.Pvm.Native", load = load);
 
+fn load(_env: Env, _info: Term) -> bool {
+    true
+}
 
 #[rustler::nif]
-fn execute<'a>(
-    env: Env<'a>,
-    program: Binary,
-    counter: u64,
-    gas: u64,
-    args: Binary,
-) -> Term<'a> {
-    // For now: just allocate a VM, don't run
-    let vm = initialize_program(&program, &args);
+fn execute<'a>(env: Env<'a>, program: Binary, counter: u64, gas: u64, args: Binary) -> Term<'a> {
+    // Try to initialize the program
+    let (code, registers, memory) = match initialize_program(&program, &args) {
+        None => {
+            // Return {0, :panic, context} equivalent - for now just return {0, :panic}
+            return (0u64, "panic").encode(env)
+        }
+        Some(v) => v,
+    };
 
-    // Return {:ok, %{pc: ..., gas: ...}}
-    let result = (
-        "ok",
-        vec![("pc", vm.pc as u64), ("gas", gas), ("counter", counter)],
-    );
+    let deblob = deblob(code);
 
-    result.encode(env)
+    return registers.encode(env);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     // #[test]
     // fn it_works() {
     //     let result = add(2, 2);

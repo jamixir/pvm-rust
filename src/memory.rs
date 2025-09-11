@@ -1,7 +1,10 @@
 // src/memory.rs
 
+use std::sync::Mutex;
+
 use crate::consts::{MEMORY_SIZE, MIN_ADDR, PAGE_SIZE};
 use memmap::{MmapMut, MmapOptions};
+use rustler::{Resource, ResourceArc};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -25,7 +28,7 @@ pub struct MemoryBuilder {
 impl Memory {
     #[inline]
     pub fn builder() -> MemoryBuilder {
-        let mmap = unsafe { MmapOptions::new().len(MEMORY_SIZE).map_anon().unwrap() };
+        let mmap = MmapOptions::new().len(MEMORY_SIZE).map_anon().unwrap();
         let total_pages = MEMORY_SIZE / PAGE_SIZE;
         let access_entries = (total_pages + 31) / 32;
         let memory = Memory {
@@ -55,11 +58,11 @@ impl Memory {
 
         unsafe {
             for page in page_start..page_end {
-                let entry_index = page >> 5; // (page / 32)
+                let entry_index = page >> 5; // page / 32
 
-                let bit_offset = (page & 31) << 1; // (page %32) * 2
+                let bit_offset = (page & 31) << 1; // (page % 32) * 2
                 let entry = *self.access.get_unchecked(entry_index);
-                let page_permission = ((entry >> bit_offset) & 0b11);
+                let page_permission = (entry >> bit_offset) & 0b11;
                 if (page_permission & required_bits) != required_bits {
                     return false;
                 }
@@ -74,7 +77,6 @@ impl Memory {
         let start_page = addr / PAGE_SIZE;
         let end_page = (addr + len + PAGE_SIZE - 1) / PAGE_SIZE;
         let permission_bits = permissions as u64;
-        
 
         unsafe {
             for page in start_page..end_page {
@@ -88,11 +90,6 @@ impl Memory {
                 *entry |= permission_bits << bit_offset;
             }
         }
-    }
-
-    #[inline]
-    pub fn size(&self) -> usize {
-        self.mmap.len()
     }
 }
 
@@ -117,4 +114,24 @@ impl MemoryBuilder {
     pub fn build(self) -> Memory {
         self.memory
     }
+}
+
+pub struct MemoryResource {
+    pub memory: Mutex<Memory>,
+}
+
+impl Resource for MemoryResource {}
+
+pub type MemoryRef = ResourceArc<MemoryResource>;
+
+#[rustler::nif]
+pub fn memory_read(mem: MemoryRef, addr: usize, len: usize) -> Option<Vec<u8>> {
+    let memory = mem.memory.lock().unwrap();
+    Some(memory.read(addr, len).to_vec())
+}
+
+#[rustler::nif]
+pub fn memory_write(mem: MemoryRef, addr: usize, data: Vec<u8>) {
+    let mut memory = mem.memory.lock().unwrap();
+    memory.write(addr, &data);
 }
