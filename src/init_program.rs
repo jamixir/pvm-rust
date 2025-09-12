@@ -1,5 +1,3 @@
-use rustler::Binary;
-
 use crate::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
 use crate::memory::{Memory, Permission};
 
@@ -21,7 +19,7 @@ fn align_to_page_size(x: usize) -> usize {
 }
 
 pub fn parse_program_segments<'a>(
-    program: &'a Binary,
+    program: &'a [u8],
 ) -> Result<ProgramSegments<'a>, &'static str> {
     if program.len() < 15 {
         return Err("insufficient_bytes");
@@ -67,7 +65,7 @@ pub fn parse_program_segments<'a>(
 }
 
 pub fn initialize_program<'a>(
-    program: &'a Binary,
+    program: &'a [u8],
     args: &'a [u8],
 ) -> Option<(&'a [u8], [u64; 13], Memory)> {
     let program_segments = parse_program_segments(program).ok()?;

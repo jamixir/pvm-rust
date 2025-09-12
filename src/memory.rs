@@ -17,8 +17,8 @@ pub enum Permission {
 pub struct Memory {
     mmap: MmapMut,
     access: Vec<u64>,
-    current_heap_pointer: usize,
-    max_heap_pointer: usize,
+    pub current_heap_pointer: usize,
+    pub max_heap_pointer: usize,
 }
 
 pub struct MemoryBuilder {
