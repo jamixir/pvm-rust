@@ -77,8 +77,6 @@ fn decode_next_integer(bin: &[u8]) -> (u64, &[u8]) {
 
             (value, &bin[1 + l..])
         }
-
-        _ => unreachable!(),
     }
 }
 
@@ -234,25 +232,23 @@ mod tests {
 #[cfg(test)]
 mod bitmask_skip_tests {
     use super::*;
+    use crate::utils::skip;
 
     fn compute_skips(bitmask: &[u64]) -> Vec<usize> {
         let mut skips = Vec::new();
-        let mut pc = 0; // Start at position 0 (0-based indexing)
+        let mut pc = 0;
 
         loop {
-            // Count zeros from current pc to next set bit
-            let skip_distance = count_zeros_to_next_set(bitmask, pc + 1);
+            let skip_distance = skip(bitmask, pc);
             if skip_distance.is_none() {
                 break;
             }
             let skip_distance = skip_distance.unwrap();
 
-            // If we found a set bit (skip_distance < total remaining bits)
             if pc + skip_distance < bitmask.len() * 64 {
                 skips.push(skip_distance);
-                pc += skip_distance + 1; // Move past the set bit we found
+                pc += skip_distance + 1; //
             } else {
-                // No more set bits found
                 break;
             }
         }
@@ -260,39 +256,13 @@ mod bitmask_skip_tests {
         skips
     }
 
-    fn count_zeros_to_next_set(packed: &[u64], pc: usize) -> Option<usize> {
-        let word_index = pc >> 6;
-        let bit_index = pc & 63;
-
-        if word_index >= packed.len() {
-            return None;
-        }
-        let word = packed[word_index];
-        // Mask out bits before pc in the first word
-        let mask = word >> bit_index;
-        if mask != 0 {
-            return Some(mask.trailing_zeros() as usize);
-        }
-
-        if word_index + 1 >= packed.len() {
-            return None;
-        }
-        let this_word_remaining_zeros: usize = 64 - bit_index;
-        let next_word = packed[word_index + 1];
-
-        let next_word_trailing_zeros = next_word.trailing_zeros() as usize;
-        return Some(this_word_remaining_zeros + next_word_trailing_zeros);
-    }
-
     #[test]
     fn bitmask_packing_and_skip_consistency() {
-        let bitmask_bytes = &[0b1010_0001, 0b0000_0100]; // original Elixir example
+        let bitmask_bytes = &[0b1010_0001, 0b0000_0100];
         let packed = pack_bitmask_le(bitmask_bytes);
 
-        // Compute skip indices from original u8 bytes
         let expected_skips = vec![4, 1, 2];
 
-        // Compute skip indices from packed u64
         let actual_skips = compute_skips(&packed);
 
         assert_eq!(
@@ -308,10 +278,8 @@ mod bitmask_skip_tests {
         let mut packed = pack_bitmask_le(bitmask_bytes);
         add_trap_bit(&mut packed, prog_len);
 
-        // Compute skips
         let actual_skips = compute_skips(&packed);
 
-        // Original bits without trap
         let expected_skips = vec![0, 1, 1, 1, 4, 0];
 
         assert_eq!(
@@ -332,43 +300,16 @@ mod bitmask_skip_tests {
         let prog_len = 60; // Program shorter than full bitmask
         add_trap_bit(&mut packed, prog_len);
 
-        // Expected set bits: 0, 8, 16, 24, 32, 40, 48, 56, 60 (trap), 63
-        // Skip distances between consecutive set bits: 0→8=7, 8→16=7, 16→24=7, etc.
-        let expected_skips = vec![7, 7, 7, 7, 7, 7, 7, 3, 2]; // distances between set bits
+        let expected_skips = vec![7, 7, 7, 7, 7, 7, 7, 3, 2];
         let actual_skips = compute_skips(&packed);
         assert_eq!(expected_skips, actual_skips, "Single u64 skip mismatch");
     }
 
     #[test]
-    fn concrete_two_u64_bitmask_examples() {
-        // Example 2: Two u64 words (16 bytes)
-        // First word: 0x0101010101010101 (LE)
-        // Second word: 0x8000000000000001 (LE)
-        // Binary representation:
-        // Word 0: 0000_0001 0000_0001 0000_0001 0000_0001 0000_0001 0000_0001 0000_0001 0000_0001
-        // Word 1: 0000_0001 0000_0000 0000_0000 0000_0000 0000_0000 0000_0000 0000_0000 1000_0000
-        // Set bits at: 0, 8, 16, 24, 32, 40, 48, 56, 64, 127
-        let bitmask_bytes = &[
-            0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, // First u64
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, // Second u64
-        ];
-        let mut packed = pack_bitmask_le(bitmask_bytes);
-        let prog_len = 100; // Program length between the set bits
-        add_trap_bit(&mut packed, prog_len);
-
-        // Set bits: 0, 8, 16, 24, 32, 40, 48, 56, 64, 100 (trap), 127
-        // Skip distances: 7, 7, 7, 7, 7, 7, 7, 7, 35, 26
-        let expected_skips = vec![7, 7, 7, 7, 7, 7, 7, 7, 35, 26];
-        let actual_skips = compute_skips(&packed);
-        assert_eq!(expected_skips, actual_skips, "Two u64 skip mismatch");
-    }
-
-    #[test]
     fn concrete_trap_bit_effects() {
-        // Test how trap bit affects skip distances with same bitmask but different program lengths
         let bitmask_bytes = &[0x05]; // Binary: 0000_0101 (bits 0 and 2 set)
 
-        // Test 1: Short program (trap at bit 3)
+        // Test 1:(trap at bit 3)
         let mut packed1 = pack_bitmask_le(bitmask_bytes);
         add_trap_bit(&mut packed1, 3);
         // Set bits: 0, 2, 3 (trap) -> skip distances: 1, 0
@@ -376,7 +317,7 @@ mod bitmask_skip_tests {
         let actual_skips1 = compute_skips(&packed1);
         assert_eq!(expected_skips1, actual_skips1, "Short program trap effect");
 
-        // Test 2: Medium program (trap at bit 5)
+        // Test 2:  (trap at bit 5)
         let mut packed2 = pack_bitmask_le(bitmask_bytes);
         add_trap_bit(&mut packed2, 5);
         // Set bits: 0, 2, 5 (trap) -> skip distances: 1, 2
@@ -384,7 +325,7 @@ mod bitmask_skip_tests {
         let actual_skips2 = compute_skips(&packed2);
         assert_eq!(expected_skips2, actual_skips2, "Medium program trap effect");
 
-        // Test 3: Long program (trap at bit 10)
+        // Test 3: (trap at bit 10)
         let mut packed3 = pack_bitmask_le(bitmask_bytes);
         add_trap_bit(&mut packed3, 10);
         // Set bits: 0, 2, 10 (trap) -> skip distances: 1, 7

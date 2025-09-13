@@ -2,12 +2,14 @@ use rustler::{Binary, Encoder, Env, Term};
 
 use crate::decoder::deblob;
 use crate::init_program::initialize_program;
+use crate::utils::build_start_set;
 mod consts;
 mod decoder;
 mod encoder;
 mod init_program;
 mod memory;
 mod vm;
+mod utils;
 
 rustler::init!("Elixir.Pvm.Native", load = load);
 
@@ -29,6 +31,7 @@ fn execute<'a>(env: Env<'a>, program: Binary, counter: u64, gas: u64, args: Bina
     };
 
     let deblob = deblob(code);
+    let start_set = build_start_set(deblob.program, &deblob.bitmask);
 
     return registers.encode(env);
 }
