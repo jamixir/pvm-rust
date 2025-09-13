@@ -1,39 +1,64 @@
-use rustler::{Binary, Encoder, Env, Term};
+use rustler::{Binary, Decoder, Encoder, Env, NifResult, Term};
 
 use crate::decoder::deblob;
 use crate::init_program::initialize_program;
+use crate::memory::{MemoryRef, MemoryResource};
 use crate::utils::build_start_set;
+use crate::vm::Vm;
 mod consts;
 mod decoder;
 mod encoder;
 mod init_program;
 mod memory;
-mod vm;
 mod utils;
+mod vm;
 
 rustler::init!("Elixir.Pvm.Native", load = load);
-
-fn load(_env: Env, _info: Term) -> bool {
-    true
+fn load(env: Env, _info: Term) -> bool {
+    env.register::<MemoryResource>().is_ok()
 }
 
 #[rustler::nif]
-fn execute<'a>(env: Env<'a>, program: Binary, counter: u64, gas: u64, args: Binary) -> Term<'a> {
+fn execute<'a>(
+    env: Env<'a>,
+    program_term: Term<'a>,
+    pc_term: Term<'a>,
+    gas_term: Term<'a>,
+    args_term: Term<'a>,
+    memory_ref_term: Term<'a>,
+) -> NifResult<Term<'a>> {
+
+    let program: Binary<'a> = Binary::decode(program_term)?;
+    let pc: usize = usize::decode(pc_term)?;
+    let gas: u64 = u64::decode(gas_term)?;
+    let args: Binary<'a> = Binary::decode(args_term)?;
+    let memory_ref: MemoryRef = MemoryRef::decode(memory_ref_term)?;
     // Convert Binary to slice and try to initialize the program
-    let program_slice: &[u8] = &program;
-    let args_slice: &[u8] = &args;
+    let program_slice: &[u8] = program.as_slice();
+    let args_slice: &[u8] = args.as_slice();
     let (code, registers, memory) = match initialize_program(program_slice, args_slice) {
         None => {
             // Return {0, :panic, context} equivalent - for now just return {0, :panic}
-            return (0u64, "panic").encode(env);
+            return Ok((0u64, "panic").encode(env));
         }
         Some(v) => v,
     };
 
     let deblob = deblob(code);
     let start_set = build_start_set(deblob.program, &deblob.bitmask);
+    let _vm = Vm::new(
+        code,
+        deblob.bitmask,
+        deblob.jump_table,
+        start_set,
+        registers,
+        pc,
+        gas,
+        memory_ref,
+        Some(memory),
+    );
 
-    return registers.encode(env);
+    return Ok(registers.encode(env));
 }
 
 #[cfg(test)]

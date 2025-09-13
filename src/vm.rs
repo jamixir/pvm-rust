@@ -8,24 +8,40 @@ pub enum ExecutionResult {
     Halt,
     Error(&'static str),
 }
-pub struct Vm {
+pub struct Vm<'a> {
     pub registers: [u64; 13],
-    pub program: Vec<u8>,
+    pub program: &'a [u8],
     pub bitmask: Vec<u64>,
     pub jump_table: Vec<u64>,
+    pub start_set: Vec<u64>,
     pub pc: usize,
     pub gas: u64,
+    pub memory_ref: MemoryRef,
+    pub memory: Option<Memory>,
 }
 
-impl Vm {
-    pub fn new(program: Vec<u8>, bitmask: Vec<u64>, jump_table: Vec<u64>, registers: [u64; 13], pc: usize, gas: u64) -> Self {
+impl<'a> Vm<'a> {
+    pub fn new(
+        program: &'a [u8],
+        bitmask: Vec<u64>,
+        jump_table: Vec<u64>,
+        start_set: Vec<u64>,
+        registers: [u64; 13],
+        pc: usize,
+        gas: u64,
+        memory_ref: MemoryRef,
+        memory: Option<Memory>,
+    ) -> Self {
         Self {
             registers,
             program,
             bitmask,
             jump_table,
+            start_set,
             pc,
             gas,
+            memory_ref,
+            memory,
         }
     }
 }
