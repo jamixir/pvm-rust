@@ -14,6 +14,12 @@ pub enum Permission {
     ReadWrite = 0b11,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MemoryError {
+    Fault { page_addr: usize },
+    Panic,
+}
+
 pub struct Memory {
     mmap: MmapMut,
     access: Vec<u64>,
@@ -41,13 +47,36 @@ impl Memory {
     }
 
     #[inline(always)]
-    pub fn read(&self, addr: usize, len: usize) -> &[u8] {
-        &self.mmap[addr..addr + len]
+    pub fn read(&self, addr: usize, len: usize) -> Result<&[u8], MemoryError> {
+        if len == 0 {
+            return Ok(&[]);
+        }
+        if addr < MIN_ADDR {
+            return Err(MemoryError::Panic);
+        }
+        if self.check_access(addr, len, Permission::Read) {
+            Ok(&self.mmap[addr..addr + len])
+        } else {
+            let page_addr = (addr / PAGE_SIZE) * PAGE_SIZE;
+            Err(MemoryError::Fault { page_addr })
+        }
     }
 
     #[inline(always)]
-    pub fn write(&mut self, addr: usize, data: &[u8]) {
-        self.mmap[addr..addr + data.len()].copy_from_slice(data);
+    pub fn write(&mut self, addr: usize, data: &[u8]) -> Result<(), MemoryError> {
+        if data.len() == 0 {
+            return Ok(());
+        }
+        if addr < MIN_ADDR {
+            return Err(MemoryError::Panic);
+        }
+        if self.check_access(addr, data.len(), Permission::ReadWrite) {
+            self.mmap[addr..addr + data.len()].copy_from_slice(data);
+            Ok(())
+        } else {
+            let page_addr = (addr / PAGE_SIZE) * PAGE_SIZE;
+            Err(MemoryError::Fault { page_addr })
+        }
     }
 
     #[inline(always)]
@@ -125,13 +154,21 @@ impl Resource for MemoryResource {}
 pub type MemoryRef = ResourceArc<MemoryResource>;
 
 #[rustler::nif]
-pub fn memory_read(mem: MemoryRef, addr: usize, len: usize) -> Option<Vec<u8>> {
+pub fn memory_read(mem: MemoryRef, addr: usize, len: usize) -> Result<Vec<u8>, (String, usize)> {
     let memory = mem.memory.lock().unwrap();
-    Some(memory.read(addr, len).to_vec())
+    match memory.read(addr, len) {
+        Ok(slice) => Ok(slice.to_vec()),
+        Err(MemoryError::Fault { page_addr }) => Err(("fault".to_string(), page_addr)),
+        Err(MemoryError::Panic) => Err(("panic".to_string(), 0)),
+    }
 }
 
 #[rustler::nif]
-pub fn memory_write(mem: MemoryRef, addr: usize, data: Vec<u8>) {
+pub fn memory_write(mem: MemoryRef, addr: usize, data: Vec<u8>) -> Result<(), (String, usize)> {
     let mut memory = mem.memory.lock().unwrap();
-    memory.write(addr, &data);
+    match memory.write(addr, &data) {
+        Ok(()) => Ok(()),
+        Err(MemoryError::Fault { page_addr }) => Err(("fault".to_string(), page_addr)),
+        Err(MemoryError::Panic) => Err(("panic".to_string(), 0)),
+    }
 }
