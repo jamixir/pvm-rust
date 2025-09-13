@@ -11,11 +11,11 @@ pub struct ProgramSegments<'a> {
 
 #[inline]
 fn align_to_min_addr(x: usize) -> usize {
-    ((x + ZZ - 1) / ZZ) * ZZ
+    x.div_ceil(ZZ) * ZZ
 }
 #[inline]
 fn align_to_page_size(x: usize) -> usize {
-    ((x + ZP - 1) / ZP) * ZP
+    x.div_ceil(ZP) * ZP
 }
 
 pub fn parse_program_segments<'a>(
