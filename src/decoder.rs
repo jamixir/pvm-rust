@@ -1,5 +1,5 @@
-pub struct Deblob<'a> {
-    pub program: &'a [u8],
+pub struct Deblob {
+    pub program: Vec<u8>,
     pub bitmask: Vec<u64>,
     pub jump_table: Vec<u64>,
 }
@@ -16,7 +16,7 @@ pub fn deblob(bin: &[u8]) -> Deblob {
     add_trap_bit(&mut bitmask, prog_len as usize);
 
     Deblob {
-        program: program_bytes,
+        program: program_bytes.to_vec(),
         bitmask,
         jump_table,
     }

@@ -1,5 +1,3 @@
-// src/memory.rs
-
 use std::sync::Mutex;
 
 use crate::consts::{MEMORY_SIZE, MIN_ADDR, PAGE_SIZE};
@@ -9,7 +7,7 @@ use rustler::{Resource, ResourceArc};
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Permission {
-    None = 0b00,
+    _None = 0b00,
     Read = 0b01,
     ReadWrite = 0b11,
 }
@@ -146,29 +144,53 @@ impl MemoryBuilder {
 }
 
 pub struct MemoryResource {
-    pub memory: Mutex<Memory>,
+    pub memory: Mutex<Option<Memory>>,
 }
 
 impl Resource for MemoryResource {}
 
 pub type MemoryRef = ResourceArc<MemoryResource>;
 
+pub fn memory_take(mem_ref: &MemoryRef) -> Result<Option<Memory>, rustler::Error> {
+    let mut guard = mem_ref.memory.lock().map_err(|_| rustler::Error::Atom("mutex_poisoned"))?;
+    Ok(guard.take())
+}
+
+
+pub fn memory_put(mem_ref: &MemoryRef, memory: Memory) -> Result<(), rustler::Error> {
+    let mut guard = mem_ref.memory.lock().map_err(|_| rustler::Error::Atom("mutex_poisoned"))?;
+    if guard.is_none() {
+        *guard = Some(memory);
+        Ok(())
+    } else {
+        Err(rustler::Error::Atom("memory_already_present"))
+    }
+}
+
+
 #[rustler::nif]
-pub fn memory_read(mem: MemoryRef, addr: usize, len: usize) -> Result<Vec<u8>, (String, usize)> {
-    let memory = mem.memory.lock().unwrap();
-    match memory.read(addr, len) {
-        Ok(slice) => Ok(slice.to_vec()),
-        Err(MemoryError::Fault { page_addr }) => Err(("fault".to_string(), page_addr)),
-        Err(MemoryError::Panic) => Err(("panic".to_string(), 0)),
+pub fn memory_read(mem_ref: MemoryRef, addr: usize, len: usize) -> Result<Vec<u8>, (String, usize)> {
+    
+    let memory_guard: std::sync::MutexGuard<'_, Option<Memory>> = mem_ref.memory.lock().unwrap();
+    match memory_guard.as_ref() {
+        Some(memory) => match memory.read(addr, len) {
+            Ok(slice) => Ok(slice.to_vec()),
+            Err(MemoryError::Fault { page_addr }) => Err(("fault".to_string(), page_addr)),
+            Err(MemoryError::Panic) => Err(("panic".to_string(), 0)),
+        },
+        None => Err(("memory_not_available".to_string(), 0)),
     }
 }
 
 #[rustler::nif]
-pub fn memory_write(mem: MemoryRef, addr: usize, data: Vec<u8>) -> Result<(), (String, usize)> {
-    let mut memory = mem.memory.lock().unwrap();
-    match memory.write(addr, &data) {
-        Ok(()) => Ok(()),
-        Err(MemoryError::Fault { page_addr }) => Err(("fault".to_string(), page_addr)),
-        Err(MemoryError::Panic) => Err(("panic".to_string(), 0)),
+pub fn memory_write(mem_ref: MemoryRef, addr: usize, data: Vec<u8>) -> Result<(), (String, usize)> {
+    let mut memory_guard = mem_ref.memory.lock().unwrap();
+    match memory_guard.as_mut() {
+        Some(memory) => match memory.write(addr, &data) {
+            Ok(()) => Ok(()),
+            Err(MemoryError::Fault { page_addr }) => Err(("fault".to_string(), page_addr)),
+            Err(MemoryError::Panic) => Err(("panic".to_string(), 0)),
+        },
+        None => Err(("memory_not_available".to_string(), 0)),
     }
 }

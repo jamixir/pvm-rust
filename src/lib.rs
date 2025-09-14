@@ -1,10 +1,12 @@
-use rustler::{Binary, Decoder, Encoder, Env, NifResult, Term};
+use std::sync::{Arc, OnceLock};
 
-use crate::decoder::deblob;
+use rustler::{Binary, Decoder, Encoder, Env, NifResult, OwnedEnv, Term};
+
+use crate::decoder::{deblob, Deblob};
 use crate::init_program::initialize_program;
-use crate::memory::{MemoryRef, MemoryResource};
+use crate::memory::{memory_put, memory_take, MemoryRef, MemoryResource};
 use crate::utils::build_start_set;
-use crate::vm::Vm;
+use crate::vm::{Vm, VmContext, VmResult, VmState};
 mod consts;
 mod decoder;
 mod encoder;
@@ -13,12 +15,50 @@ mod memory;
 mod utils;
 mod vm;
 
+static VM_CONTEXT: OnceLock<Arc<VmContext>> = OnceLock::new();
+
 rustler::init!("Elixir.Pvm.Native", load = load);
 fn load(env: Env, _info: Term) -> bool {
     env.register::<MemoryResource>().is_ok()
 }
 
-#[rustler::nif]
+fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<Term<'a>> {
+    match vm.execute() {
+        VmResult::Halted { final_state } => Ok(("halted".to_string(), final_state).encode(env)),
+        VmResult::Panic { final_state } => Ok(("panic".to_string(), final_state).encode(env)),
+        VmResult::OutOfGas { final_state } => {
+            Ok(("out_of_gas".to_string(), final_state).encode(env))
+        }
+        VmResult::Fault { page, final_state } => {
+            Ok(("fault".to_string(), page, final_state).encode(env))
+        }
+        VmResult::Waiting {
+            call_id,
+            current_state,
+        } => {
+            // Memory dance: move memory from Option to ref before pausing
+            if let Some(memory) = vm.memory.take() {
+                let _ = memory_put(&vm.memory_ref, memory)?;
+            }
+
+            // Send message to Elixir with VmState + memory_ref
+            let mut owned_env = OwnedEnv::new();
+            let pid = env.pid();
+            let memory_ref = vm.memory_ref.clone();
+
+            if let Err(_) = owned_env.send_and_clear(&pid, move |env| {
+                ("ecall".to_string(), call_id, current_state, memory_ref).encode(env)
+            }) {
+                return Err(rustler::Error::Atom("send_failed"));
+            }
+
+            // Return waiting status - Elixir will call resume with updated state
+            Ok(("waiting".to_string()).encode(env))
+        }
+    }
+}
+
+#[rustler::nif(schedule = "DirtyCpu")]
 fn execute<'a>(
     env: Env<'a>,
     program_term: Term<'a>,
@@ -27,16 +67,13 @@ fn execute<'a>(
     args_term: Term<'a>,
     memory_ref_term: Term<'a>,
 ) -> NifResult<Term<'a>> {
-
-    let program: Binary<'a> = Binary::decode(program_term)?;
+    let linked_program: Binary<'a> = Binary::decode(program_term)?;
     let pc: usize = usize::decode(pc_term)?;
     let gas: u64 = u64::decode(gas_term)?;
     let args: Binary<'a> = Binary::decode(args_term)?;
     let memory_ref: MemoryRef = MemoryRef::decode(memory_ref_term)?;
-    // Convert Binary to slice and try to initialize the program
-    let program_slice: &[u8] = program.as_slice();
-    let args_slice: &[u8] = args.as_slice();
-    let (code, registers, memory) = match initialize_program(program_slice, args_slice) {
+
+    let (code, registers, memory) = match initialize_program(&linked_program, &args) {
         None => {
             // Return {0, :panic, context} equivalent - for now just return {0, :panic}
             return Ok((0u64, "panic").encode(env));
@@ -44,21 +81,53 @@ fn execute<'a>(
         Some(v) => v,
     };
 
-    let deblob = deblob(code);
-    let start_set = build_start_set(deblob.program, &deblob.bitmask);
-    let _vm = Vm::new(
-        code,
-        deblob.bitmask,
-        deblob.jump_table,
+    let Deblob {
+        program,
+        bitmask,
+        jump_table,
+    } = deblob(code);
+    let start_set = build_start_set(&program, &bitmask);
+
+    let context = Arc::new(VmContext {
+        program,
+        bitmask,
+        jump_table,
         start_set,
-        registers,
+    });
+    // Store context globally for resume NIF to access
+    let _ = VM_CONTEXT.set(context.clone());
+
+    let state = VmState {
+        registers: registers.to_vec(),
         pc,
         gas,
-        memory_ref,
-        Some(memory),
-    );
+    };
 
-    return Ok(registers.encode(env));
+    let vm = Vm::new(context, state, memory_ref.clone(), Some(memory));
+
+    execute_vm(env, vm)
+}
+
+#[rustler::nif(schedule = "DirtyCpu")]
+fn resume<'a>(
+    env: Env<'a>,
+    new_state_term: Term<'a>,
+    memory_ref_term: Term<'a>,
+) -> NifResult<Term<'a>> {
+    let new_state: VmState = VmState::decode(new_state_term)?;
+    let memory_ref: MemoryRef = MemoryRef::decode(memory_ref_term)?;
+
+    // Get stored context from global storage
+    let context = VM_CONTEXT
+        .get()
+        .ok_or(rustler::Error::Atom("no_vm_context"))?
+        .clone();
+
+    let memory = memory_take(&memory_ref)?;
+
+    let vm = Vm::new(context, new_state, memory_ref, memory);
+
+    execute_vm(env, vm)
 }
 
 #[cfg(test)]
