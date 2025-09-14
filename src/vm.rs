@@ -12,54 +12,41 @@ pub enum VmExitReason {
     Ecall { call_id: u32 },
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ExitReason {
-    Panic,
-    Halt,
-    OutOfGas,
-    Fault { page: usize },
-}
-
-pub type ExecutionResult<T> = Result<T, VmExitReason>;
-
-/// VM state that can be passed around and updated
 #[derive(Debug, Clone, NifStruct)]
 #[module = "VmState"]
 pub struct VmState {
-    pub registers: Vec<u64>, // Must be Vec for NIF serialization
+    pub registers: Vec<u64>, 
     pub pc: usize,
     pub gas: u64,
 }
 
-/// Static VM context - contains data that doesn't change during execution
 #[derive(Debug)]
 pub struct VmContext {
-    pub program: Vec<u8>,  // Owned data for safe storage across NIF calls
-    pub bitmask: Vec<u64>, // These are small, can move
+    pub program: Vec<u8>,  
+    pub bitmask: Vec<u64>, 
     pub jump_table: Vec<u64>,
     pub start_set: Vec<u64>,
 }
 
-/// Result from VM execution - used for pause/resume functionality
 #[derive(Debug)]
 pub enum VmResult {
-    Halted {
-        final_state: VmState,
-    },
-    Panic {
-        final_state: VmState,
-    },
-    OutOfGas {
-        final_state: VmState,
-    },
-    Fault {
-        page: usize,
-        final_state: VmState,
-    },
-    Waiting {
-        call_id: u32,
-        current_state: VmState,
-    },
+    Halt { state: VmState },
+    Panic { state: VmState },
+    OutOfGas { state: VmState },
+    Fault { page: usize, state: VmState },
+    Waiting { call_id: u32, state: VmState },
+}
+
+impl VmResult {
+    pub fn state(&self) -> &VmState {
+        match self {
+            VmResult::Halt { state } => state,
+            VmResult::Panic { state } => state,
+            VmResult::OutOfGas { state } => state,
+            VmResult::Fault { state, .. } => state,
+            VmResult::Waiting { state, .. } => state,
+        }
+    }
 }
 
 pub struct Vm {
@@ -84,30 +71,29 @@ impl Vm {
         }
     }
 
-    /// Main execution function - runs until completion or ecalli instruction
-    /// Returns VmResult indicating the reason for stopping
+
     pub fn execute(&mut self) -> VmResult {
         match self.vm_execute() {
             Ok(VmExitReason::Panic) => VmResult::Panic {
-                final_state: self.state.clone(),
+                state: self.state.clone(),
             },
-            Ok(VmExitReason::Halt) => VmResult::Halted {
-                final_state: self.state.clone(),
+            Ok(VmExitReason::Halt) => VmResult::Halt {
+                state: self.state.clone(),
             },
             Ok(VmExitReason::OutOfGas) => VmResult::OutOfGas {
-                final_state: self.state.clone(),
+                state: self.state.clone(),
             },
 
             Err(VmExitReason::Fault { page }) => VmResult::Fault {
                 page,
-                final_state: self.state.clone(),
+                state: self.state.clone(),
             },
 
             Err(VmExitReason::Ecall { call_id }) => {
                 // Just return waiting - let the NIF layer handle message passing
                 VmResult::Waiting {
                     call_id,
-                    current_state: self.state.clone(),
+                    state: self.state.clone(),
                 }
             }
 
@@ -115,7 +101,7 @@ impl Vm {
         }
     }
 
-    fn vm_execute(&mut self) -> ExecutionResult<VmExitReason> {
+    fn vm_execute(&mut self) -> Result<VmExitReason, VmExitReason> {
         loop {
             let exit_reason = self.single_step_run()?;
 
@@ -138,7 +124,7 @@ impl Vm {
         }
     }
 
-    fn single_step_run(&mut self) -> ExecutionResult<VmExitReason> {
+    fn single_step_run(&mut self) -> Result<VmExitReason, VmExitReason> {
         // This is where single instruction execution would happen
         // For now, implementing a basic version that matches the existing execute_next_instruction
 

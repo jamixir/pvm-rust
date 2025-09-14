@@ -6,7 +6,7 @@ edition = "2021"
 [lib]
 name = "pvm"
 path = "src/lib.rs"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 rustler = "0.36.2"
