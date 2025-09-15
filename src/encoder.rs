@@ -65,5 +65,3 @@ fn encode_integer(x: u64, out: &mut Vec<u8>) {
         out.extend_from_slice(&x.to_le_bytes());
     }
 }
-
-

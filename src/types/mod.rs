@@ -1,5 +1,5 @@
-use rustler::NifTuple;
 use crate::vm::VmState;
+use rustler::NifTuple;
 
 pub mod host_result;
 

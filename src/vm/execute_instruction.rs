@@ -1,32 +1,19 @@
-use crate::vm::types::StepResult;
-use crate::utils::skip;
-use crate::vm::{Vm, VmState};
+use crate::vm::instructions::instruction_category::{get_category, InstructionCategory};
+use crate::vm::{dispatch_no_args, dispatch_one_immediate, InstructionResult, Vm};
 
 impl Vm {
-    pub fn execute_instruction(&self, opcode: u8) -> (StepResult, VmState) {
-        match opcode {
-            0x0A => self.execute_ecalli(),
+    #[inline(always)]
+    pub fn execute_instruction(&mut self, opcode: u8) -> InstructionResult {
+        let category = get_category(opcode);
 
-            0x00 => (StepResult::Halt, self.state),
+        match category {
+            InstructionCategory::NoArgs => dispatch_no_args(opcode, self),
 
-            // Unknown opcode - panic
-            _ => (StepResult::Panic, self.state),
+            InstructionCategory::OneImmediate => dispatch_one_immediate(opcode, self),
+
+            InstructionCategory::Unknown => InstructionResult::Panic,
+
+            _ => unimplemented!(),
         }
-    }
-
-    fn execute_ecalli(&self) -> (StepResult, VmState) {
-        // Decode immediate value
-        let l_x = skip(&self.context.bitmask, self.state.pc)
-            .unwrap_or(0)
-            .min(4);
-        let value = self.decode_and_extend(self.state.pc + 1, l_x);
-
-        // For ecalli, we don't modify the PC - it will be handled by next_counter
-        (
-            StepResult::Ecall {
-                call_id: value as u32,
-            },
-            self.state,
-        )
     }
 }

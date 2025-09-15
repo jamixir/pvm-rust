@@ -10,7 +10,6 @@ pub const LAYOUT_BUFFER_SIZE: usize = ZI;
 
 pub const GAS_COST: u64 = 1;
 
-
 pub const TERMINATION_INSTRUCTIONS: [bool; 231] = {
     let mut arr = [false; 231];
 

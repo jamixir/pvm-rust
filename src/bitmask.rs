@@ -1,6 +1,5 @@
 use std::cmp::min;
 
-
 #[derive(Debug)]
 pub struct BitMask {
     pub bits: Vec<u64>,

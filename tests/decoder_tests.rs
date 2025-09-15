@@ -25,8 +25,7 @@ mod tests {
 
         assert_eq!(decoded_program, program);
         assert_eq!(decoded_jump_table, jump_table);
-        assert_eq!(decoded_bitmask.size(), 1); // single word may hold first 8 bits
-                                              // Could also compare bits manually if needed
+        assert_eq!(decoded_bitmask.size(), 1);
     }
 
     #[test]
@@ -97,9 +96,7 @@ mod tests {
 
 #[cfg(test)]
 mod bitmask_skip_tests {
-    use pvm::{bitmask::{BitMask}, decoder::*};
-
-
+    use pvm::{bitmask::BitMask, decoder::*};
 
     fn compute_skips(bitmask: &BitMask) -> Vec<usize> {
         let mut skips = Vec::new();

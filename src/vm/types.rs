@@ -1,13 +1,34 @@
-use crate::registers::Registers;
+use crate::{bitmask::BitMask, registers::Registers, start_set::StartSet};
 use rustler::NifStruct;
 #[derive(Debug, Clone, PartialEq)]
-pub enum StepResult
- {
+
+pub enum InstructionResult {
+    Continue,
+    Jump(usize),
+    Halt,
+    Panic,
+    Fault { page: usize },
+    Ecall { call_id: u64 },
+}
+pub enum StepResult {
     Continue,
     Halt,
     Panic,
     Fault { page: usize },
-    Ecall { call_id: u32 },
+    Ecall { call_id: u64 },
+}
+
+impl From<InstructionResult> for StepResult {
+    fn from(instruction_result: InstructionResult) -> Self {
+        match instruction_result {
+            InstructionResult::Continue => StepResult::Continue,
+            InstructionResult::Jump(..) => StepResult::Continue,
+            InstructionResult::Halt => StepResult::Halt,
+            InstructionResult::Panic => StepResult::Panic,
+            InstructionResult::Fault { page } => StepResult::Fault { page },
+            InstructionResult::Ecall { call_id } => StepResult::Ecall { call_id },
+        }
+    }
 }
 
 #[derive(Debug, Clone, NifStruct, Copy)]
@@ -51,9 +72,9 @@ impl VmState {
 #[derive(Debug)]
 pub struct VmContext {
     pub program: Vec<u8>,
-    pub bitmask: Vec<u64>,
+    pub bitmask: BitMask,
     pub jump_table: Vec<u64>,
-    pub start_set: Vec<u64>,
+    pub start_set: StartSet,
 }
 
 #[derive(Debug)]
@@ -62,9 +83,8 @@ pub enum ExecutionResult {
     Panic,
     OutOfGas,
     Fault { page: usize },
-    HostCall { call_id: u32 },
+    HostCall { call_id: u64 },
 }
-
 
 impl From<StepResult> for ExecutionResult {
     fn from(exit_reason: StepResult) -> Self {

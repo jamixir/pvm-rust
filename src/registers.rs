@@ -18,13 +18,11 @@ impl Registers {
     pub fn to_slice(&self) -> [u64; 13] {
         self.data
     }
-    
+
     pub fn from_slice(slice: [u64; 13]) -> Self {
         Self { data: slice }
     }
 }
-
-
 
 impl Decoder<'_> for Registers {
     fn decode(term: Term) -> rustler::NifResult<Self> {

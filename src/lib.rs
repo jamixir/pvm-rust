@@ -7,15 +7,21 @@ pub mod errors;
 pub mod init_program;
 pub mod memory;
 pub mod registers;
+pub mod start_set;
 pub mod types;
 pub mod vm;
-pub mod start_set;
 
 use rustler::{Binary, Decoder, Encoder, Env, NifResult, OwnedEnv, Term};
 use std::sync::{Arc, OnceLock};
 
 use crate::{
-    decoder::{deblob, Deblob}, errors::{to_rustler_error, ToNifResult}, init_program::initialize_program, memory::{get_owned, put_owned, MemoryRef, MemoryResource}, start_set::StartSet, types::host_result::{ExecuteResult, HostOutput}, vm::{ExecutionResult, Vm, VmContext, VmState}
+    decoder::{deblob, Deblob},
+    errors::{to_rustler_error, ToNifResult},
+    init_program::initialize_program,
+    memory::{get_owned, put_owned, MemoryRef, MemoryResource},
+    start_set::StartSet,
+    types::host_result::{ExecuteResult, HostOutput},
+    vm::{ExecutionResult, Vm, VmContext, VmState},
 };
 
 static VM_CONTEXT: OnceLock<Arc<VmContext>> = OnceLock::new();

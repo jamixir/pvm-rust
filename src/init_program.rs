@@ -19,9 +19,7 @@ fn align_to_page_size(x: usize) -> usize {
     x.div_ceil(ZP) * ZP
 }
 
-pub fn parse_program_segments<'a>(
-    program: &'a [u8],
-) -> Result<ProgramSegments<'a>, &'static str> {
+pub fn parse_program_segments<'a>(program: &'a [u8]) -> Result<ProgramSegments<'a>, &'static str> {
     if program.len() < 15 {
         return Err("insufficient_bytes");
     }

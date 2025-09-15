@@ -18,8 +18,6 @@ mod tests {
     }
 
     fn test_memory_regions(memory: &mut Memory, program_bytes: &[u8], args: &[u8]) {
-
-
         //  Zero length read works everywhere
         assert!(memory.read(100, 0).is_ok());
         assert_eq!(memory.read(0100, 0).unwrap().len(), 0);
@@ -126,15 +124,18 @@ mod tests {
 
         // Verify registers are set correctly according to the function
         assert_eq!(
-            registers.get(0), 0xFFFF_0000,
+            registers.get(0),
+            0xFFFF_0000,
             "Register 0 should be set to 0xFFFF_0000"
         );
         assert_eq!(
-            registers.get(1), 0xFEFE_0000,
+            registers.get(1),
+            0xFEFE_0000,
             "Register 1 should be set to 0xFEFE_0000"
         );
         assert_eq!(
-            registers.get(7), 0xFEFF_0000,
+            registers.get(7),
+            0xFEFF_0000,
             "Register 7 should be set to 0xFEFF_0000"
         );
         assert_eq!(
