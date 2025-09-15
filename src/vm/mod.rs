@@ -29,16 +29,16 @@ impl Vm {
         }
     }
 
-    pub fn execute(&mut self) -> VmResult {
+    pub fn execute(&mut self) -> ExecutionResult {
         loop {
             let exit_reason = self.single_step_run();
 
             match exit_reason {
-                SingleStepExit::Continue if self.state.has_gas() => {
+                StepResult::Continue if self.state.has_gas() => {
                     continue;
                 }
                 _ => {
-                    return VmResult::from((exit_reason, self.state));
+                    return ExecutionResult::from(exit_reason);
                 }
             }
         }

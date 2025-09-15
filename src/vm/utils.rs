@@ -1,4 +1,4 @@
-use crate::vm::types::SingleStepExit;
+use crate::vm::types::StepResult;
 use crate::{utils::skip, vm::Vm};
 
 impl Vm {
@@ -6,16 +6,16 @@ impl Vm {
         skip(&self.context.bitmask, pc)
     }
 
-    pub fn next_counter(&self, exit_reason: &SingleStepExit, prev_counter: usize) -> usize {
+    pub fn next_counter(&self, exit_reason: &StepResult, prev_counter: usize) -> usize {
         match exit_reason {
-            SingleStepExit::Continue => {
+            StepResult::Continue => {
                 if self.state.pc != prev_counter {
                     self.state.pc
                 } else {
                     prev_counter + 1 + self.skip(prev_counter).unwrap_or(0)
                 }
             }
-            SingleStepExit::Ecall { .. } => prev_counter + 1 + self.skip(prev_counter).unwrap_or(0),
+            StepResult::Ecall { .. } => prev_counter + 1 + self.skip(prev_counter).unwrap_or(0),
             _ => prev_counter,
         }
     }

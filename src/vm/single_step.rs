@@ -1,11 +1,11 @@
 use crate::consts::GAS_COST;
-use crate::vm::types::SingleStepExit;
+use crate::vm::types::StepResult;
 use crate::vm::Vm;
 
 impl Vm {
-    pub fn single_step_run(&mut self) -> SingleStepExit {
+    pub fn single_step_run(&mut self) -> StepResult {
         if self.state.pc >= self.context.program.len() {
-            return SingleStepExit::Panic;
+            return StepResult::Panic;
         }
 
         let opcode = self.context.program[self.state.pc];

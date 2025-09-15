@@ -20,7 +20,7 @@ use crate::{
     memory::{get_owned, put_owned, MemoryRef, MemoryResource},
     types::host_result::{ExecuteResult, HostOutput},
     utils::build_start_set,
-    vm::{Vm, VmContext, VmResult, VmState},
+    vm::{Vm, VmContext, ExecutionResult, VmState},
 };
 
 static VM_CONTEXT: OnceLock<Arc<VmContext>> = OnceLock::new();
@@ -31,12 +31,14 @@ fn load(env: Env, _info: Term) -> bool {
 }
 
 fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
+    let original_gas = vm.state.gas;
     let result = vm.execute();
-    let used_gas = result.state().used_gas(vm.state.gas);
+    let used_gas = vm.state.used_gas(original_gas);
+
     match result {
-        VmResult::Halt { state } => {
-            let start = state.registers.get(7) as usize;
-            let len = state.registers.get(8) as usize;
+        ExecutionResult::Halt => {
+            let start = vm.state.registers.get(7) as usize;
+            let len = vm.state.registers.get(8) as usize;
             let output = match vm
                 .memory
                 .as_ref()
@@ -48,32 +50,37 @@ fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
             };
             Ok(ExecuteResult { used_gas, output })
         }
-        VmResult::Panic { .. } => Ok(ExecuteResult {
+        ExecutionResult::Panic { .. } => Ok(ExecuteResult {
             used_gas,
             output: HostOutput::Atom(atoms::panic()),
         }),
-        VmResult::OutOfGas { .. } => Ok(ExecuteResult {
+        ExecutionResult::OutOfGas { .. } => Ok(ExecuteResult {
             used_gas,
             output: HostOutput::Atom(atoms::out_of_gas()),
         }),
-        VmResult::Fault { .. } => Ok(ExecuteResult {
+        ExecutionResult::Fault { .. } => Ok(ExecuteResult {
             used_gas,
             output: HostOutput::Atom(atoms::panic()),
         }),
-        VmResult::HostCall { call_id, state } => {
+        ExecutionResult::HostCall { call_id } => {
             if let Some(memory) = vm.memory.take() {
                 let _ = put_owned(&vm.memory_ref, memory).to_nif()?;
             }
 
             // Send message to Elixir with VmState + memory_ref
-            let mut owned_env = OwnedEnv::new();
+            let pid = env.pid();
             let memory_ref = vm.memory_ref.clone();
+            let state = vm.state.clone();
 
-            if let Err(_) = owned_env.send_and_clear(&env.pid(), move |env| {
-                (atoms::ecall(), call_id, state, memory_ref).encode(env)
-            }) {
-                return Err(to_rustler_error!(atoms::send_failed()));
-            }
+            std::thread::spawn(move || {
+                let mut owned_env = OwnedEnv::new();
+
+                if let Err(e) = owned_env.send_and_clear(&pid, move |env| {
+                    (atoms::ecall(), call_id, state, memory_ref).encode(env)
+                }) {
+                    println!("ERROR: Failed to send ecall message: {:?}", e);
+                }
+            });
 
             Ok(ExecuteResult {
                 used_gas,

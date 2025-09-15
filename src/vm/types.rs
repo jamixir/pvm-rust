@@ -1,7 +1,8 @@
 use crate::registers::Registers;
 use rustler::NifStruct;
 #[derive(Debug, Clone, PartialEq)]
-pub enum SingleStepExit {
+pub enum StepResult
+ {
     Continue,
     Halt,
     Panic,
@@ -56,38 +57,23 @@ pub struct VmContext {
 }
 
 #[derive(Debug)]
-pub enum VmResult {
-    Halt { state: VmState },
-    Panic { state: VmState },
-    OutOfGas { state: VmState },
-    Fault { page: usize, state: VmState },
-    HostCall { call_id: u32, state: VmState },
+pub enum ExecutionResult {
+    Halt,
+    Panic,
+    OutOfGas,
+    Fault { page: usize },
+    HostCall { call_id: u32 },
 }
 
-impl VmResult {
-    pub fn state(&self) -> &VmState {
-        match self {
-            VmResult::Halt { state } => state,
-            VmResult::Panic { state } => state,
-            VmResult::OutOfGas { state } => state,
-            VmResult::Fault { state, .. } => state,
-            VmResult::HostCall { state, .. } => state,
-        }
-    }
-}
 
-impl From<(SingleStepExit, VmState)> for VmResult {
-    fn from((exit_reason, state): (SingleStepExit, VmState)) -> Self {
+impl From<StepResult> for ExecutionResult {
+    fn from(exit_reason: StepResult) -> Self {
         match exit_reason {
-            SingleStepExit::Continue => VmResult::OutOfGas { state },
-            SingleStepExit::Halt => VmResult::Halt {
-                state: VmState { gas: 0, ..state },
-            },
-            SingleStepExit::Panic => VmResult::Panic {
-                state: VmState { gas: 0, ..state },
-            },
-            SingleStepExit::Fault { page } => VmResult::Fault { page, state },
-            SingleStepExit::Ecall { call_id } => VmResult::HostCall { call_id, state },
+            StepResult::Continue => ExecutionResult::OutOfGas,
+            StepResult::Halt => ExecutionResult::Halt,
+            StepResult::Panic => ExecutionResult::Panic,
+            StepResult::Fault { page } => ExecutionResult::Fault { page },
+            StepResult::Ecall { call_id } => ExecutionResult::HostCall { call_id },
         }
     }
 }
