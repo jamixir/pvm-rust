@@ -7,6 +7,6 @@ pub mod utils;
 pub mod vm;
 
 pub use dispatchers::*;
+pub use instructions::*;
 pub use types::*;
 pub use vm::*;
-pub use instructions::*;

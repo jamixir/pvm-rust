@@ -52,8 +52,8 @@ pub fn unsigned_to_signed(x: u64, num_bytes: usize) -> i64 {
     }
 }
 
-pub fn branch(destination: usize, discriminator: bool, start_set: &StartSet) -> InstructionResult {
-    match (discriminator, start_set.includes(destination)) {
+pub fn branch(destination: usize, should_branch: bool, start_set: &StartSet) -> InstructionResult {
+    match (should_branch, start_set.includes(destination)) {
         (true, true) => InstructionResult::Jump(destination),
         (true, false) => InstructionResult::Panic,
         (false, _) => InstructionResult::Continue,

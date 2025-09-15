@@ -1,0 +1,96 @@
+use crate::vm::instructions::opcodes::*;
+use crate::vm::utils::{branch, decode_and_extend, decode_bytes, unsigned_to_signed};
+use crate::vm::{InstructionResult, Vm};
+
+impl Vm {
+    #[inline(always)]
+    pub fn dispatch_reg_immediate_offset(&mut self, opcode: u8) -> InstructionResult {
+        let context = self.context.as_ref();
+        let start_set = &context.start_set;
+
+        let (r_a, v_x, v_y) = self.get_reg_imm_offset_params();
+        let state: &mut crate::vm::VmState = &mut self.state;
+
+        match opcode {
+            LOAD_IMM_JUMP => {
+                state.registers.set(r_a, v_x);
+                branch(v_y, true, start_set)
+            }
+            BRANCH_EQ_IMM => {
+                let w_a = state.registers.get(r_a);
+                branch(v_y, w_a == v_x, start_set)
+            }
+            BRANCH_NE_IMM => {
+                let w_a = state.registers.get(r_a);
+                branch(v_y, w_a != v_x, start_set)
+            }
+            BRANCH_LT_U_IMM => {
+                let w_a = state.registers.get(r_a);
+                branch(v_y, w_a < v_x, start_set)
+            }
+            BRANCH_LE_U_IMM => {
+                let w_a = state.registers.get(r_a);
+                branch(v_y, w_a <= v_x, start_set)
+            }
+            BRANCH_GE_U_IMM => {
+                let w_a = state.registers.get(r_a);
+                branch(v_y, w_a >= v_x, start_set)
+            }
+            BRANCH_GT_U_IMM => {
+                let w_a = state.registers.get(r_a);
+                branch(v_y, w_a > v_x, start_set)
+            }
+            BRANCH_LT_S_IMM => {
+                let w_a = state.registers.get(r_a);
+                let w_a_signed = unsigned_to_signed(w_a, 8);
+                let v_x_signed = unsigned_to_signed(v_x, 8);
+                branch(v_y, w_a_signed < v_x_signed, start_set)
+            }
+            BRANCH_LE_S_IMM => {
+                let w_a = state.registers.get(r_a);
+                let w_a_signed = unsigned_to_signed(w_a, 8);
+                let v_x_signed = unsigned_to_signed(v_x, 8);
+                branch(v_y, w_a_signed <= v_x_signed, start_set)
+            }
+            BRANCH_GE_S_IMM => {
+                let w_a = state.registers.get(r_a);
+                let w_a_signed = unsigned_to_signed(w_a, 8);
+                let v_x_signed = unsigned_to_signed(v_x, 8);
+                branch(v_y, w_a_signed >= v_x_signed, start_set)
+            }
+            BRANCH_GT_S_IMM => {
+                let w_a = state.registers.get(r_a);
+                let w_a_signed = unsigned_to_signed(w_a, 8);
+                let v_x_signed = unsigned_to_signed(v_x, 8);
+                branch(v_y, w_a_signed > v_x_signed, start_set)
+            }
+            _ => InstructionResult::Panic,
+        }
+    }
+
+    #[inline(always)]
+    fn get_reg_imm_offset_params(&self) -> (usize, u64, usize) {
+        let program = &self.context.program;
+        let bitmask = &self.context.bitmask;
+        let pc = self.state.pc;
+
+        let first_byte = program[pc + 1];
+
+        //  first_byte % 16, clamped to max 12
+        let r_a = (first_byte & 0x0F).min(12) as usize;
+
+        // (first_byte / 16) % 8, clamped to max 4
+        let l_x = ((first_byte >> 4) & 0x07).min(4) as usize;
+
+        let skip_value = bitmask.skip(pc).unwrap_or(0);
+        let l_y = (skip_value.saturating_sub(l_x).saturating_sub(1)).min(4) as usize;
+
+        let v_x = decode_and_extend(program, pc + 2, l_x);
+
+        let offset_bytes = decode_bytes(program, pc + 2 + l_x, l_y);
+        let offset_signed = unsigned_to_signed(offset_bytes, l_y);
+        let v_y = (pc as i64 + offset_signed) as usize;
+
+        (r_a, v_x, v_y)
+    }
+}

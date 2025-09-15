@@ -1,4 +1,4 @@
-use crate::{core::BitMask, core::consts::TERMINATION_INSTRUCTIONS};
+use crate::{core::consts::TERMINATION_INSTRUCTIONS, core::BitMask};
 
 #[derive(Debug)]
 pub struct StartSet {

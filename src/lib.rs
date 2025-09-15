@@ -9,11 +9,11 @@ use rustler::{Binary, Decoder, Env, NifResult, Term};
 use std::sync::{Arc, OnceLock};
 
 use crate::{
-    encoding::{deblob, Deblob},
     core::errors::{to_rustler_error, ToNifResult},
-    init_program::initialize_program,
-    core::{get_owned, MemoryRef, MemoryResource},
     core::StartSet,
+    core::{get_owned, MemoryRef, MemoryResource},
+    encoding::{deblob, Deblob},
+    init_program::initialize_program,
     types::host_result::{ExecuteResult, HostOutput},
     vm::{Vm, VmContext, VmState},
 };

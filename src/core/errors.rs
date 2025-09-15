@@ -5,7 +5,7 @@ use crate::{
     core::memory::{FaultError, MemoryError, MutexError},
 };
 
- macro_rules! to_rustler_error {
+macro_rules! to_rustler_error {
     ($atom:expr) => {
         rustler::Error::Term(Box::new($atom))
     };
@@ -44,6 +44,5 @@ impl<T> ToNifResult<T> for Result<T, MutexError> {
         }
     }
 }
-
 
 pub(crate) use to_rustler_error;

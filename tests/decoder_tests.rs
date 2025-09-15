@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use pvm::{core::BitMask, encoding::{deblob, encode_program}};
+    use pvm::{
+        core::BitMask,
+        encoding::{deblob, encode_program},
+    };
 
     fn encode_decode(
         program: &[u8],
