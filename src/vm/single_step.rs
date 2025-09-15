@@ -16,7 +16,6 @@ impl Vm {
         self.state.consume_gas(GAS_COST);
 
         let next_counter = self.next_counter(&exit_reason, prev_counter);
-        //  For halt/panic/fault,next_counter is the same as prev_counter
 
         let exit_reason_ = exit_reason.into();
         self.state.pc = next_counter;

@@ -11,7 +11,9 @@ impl Vm {
                 prev_counter + 1 + self.context.bitmask.skip(prev_counter).unwrap_or(0)
             }
             InstructionResult::Jump(destination) => *destination,
-            _ => prev_counter,
+            InstructionResult::Halt => 0,
+            InstructionResult::Panic => 0,
+            InstructionResult::Fault { .. } => prev_counter,
         }
     }
 }
