@@ -22,7 +22,10 @@ pub fn skip(bitmask: &[u64], pc: usize) -> Option<usize> {
     let next_word = bitmask[word_index + 1];
 
     let next_word_trailing_zeros = next_word.trailing_zeros() as usize;
-    return Some(min(this_word_remaining_zeros + next_word_trailing_zeros, 24));
+    return Some(min(
+        this_word_remaining_zeros + next_word_trailing_zeros,
+        24,
+    ));
 }
 
 pub fn build_start_set(program: &[u8], bitmask: &[u64]) -> Vec<u64> {

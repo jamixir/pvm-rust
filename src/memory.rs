@@ -6,7 +6,7 @@ use crate::{
     to_rustler_error, ToNifResult,
 };
 use memmap::{MmapMut, MmapOptions};
-use rustler::{NifResult, NifTuple, Resource, ResourceArc};
+use rustler::{Binary, NifResult, NifTuple, Resource, ResourceArc};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -33,6 +33,7 @@ pub struct FaultError {
     pub page_addr: usize,
 }
 
+#[derive(Debug)]
 pub struct Memory {
     mmap: MmapMut,
     access: Vec<u64>,
@@ -157,7 +158,7 @@ impl MemoryBuilder {
         self.memory
     }
 }
-
+#[derive(Debug)]
 pub struct MemoryResource {
     pub memory: Mutex<Option<Memory>>,
 }
@@ -166,12 +167,19 @@ impl Resource for MemoryResource {}
 
 pub type MemoryRef = ResourceArc<MemoryResource>;
 
-pub fn memory_take(mem_ref: &MemoryRef) -> Result<Option<Memory>, MutexError> {
+#[rustler::nif]
+pub fn memory_new() -> MemoryRef {
+    ResourceArc::new(MemoryResource {
+        memory: Mutex::new(None),
+    })
+}
+
+pub fn get_owned(mem_ref: &MemoryRef) -> Result<Option<Memory>, MutexError> {
     let mut guard = mem_ref.memory.lock().map_err(|_| MutexError::Poisoned)?;
     Ok(guard.take())
 }
 
-pub fn memory_put(mem_ref: &MemoryRef, memory: Memory) -> Result<(), MutexError> {
+pub fn put_owned(mem_ref: &MemoryRef, memory: Memory) -> Result<(), MutexError> {
     let mut guard = mem_ref.memory.lock().map_err(|_| MutexError::Poisoned)?;
     if guard.is_none() {
         *guard = Some(memory);
@@ -194,7 +202,7 @@ pub fn memory_read(mem_ref: MemoryRef, addr: usize, len: usize) -> NifResult<Vec
 }
 
 #[rustler::nif]
-pub fn memory_write(mem_ref: MemoryRef, addr: usize, data: Vec<u8>) -> NifResult<()> {
+pub fn memory_write(mem_ref: MemoryRef, addr: usize, data: Binary) -> NifResult<()> {
     let mut memory_guard = mem_ref
         .memory
         .lock()

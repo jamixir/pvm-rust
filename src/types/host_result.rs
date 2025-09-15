@@ -1,6 +1,6 @@
-use rustler::{Atom, NifStruct, NifTaggedEnum};
+use rustler::{Atom, NifStruct, NifUntaggedEnum};
 
-#[derive(Debug, Clone, NifTaggedEnum)]
+#[derive(Debug, Clone, NifUntaggedEnum)]
 
 pub enum HostOutput {
     Bytes(Vec<u8>),

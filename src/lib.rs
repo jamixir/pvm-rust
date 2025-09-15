@@ -16,7 +16,7 @@ use crate::{
     decoder::{deblob, Deblob},
     errors::{to_rustler_error, ToNifResult},
     init_program::initialize_program,
-    memory::{memory_put, memory_take, MemoryRef, MemoryResource},
+    memory::{get_owned, put_owned, MemoryRef, MemoryResource},
     types::host_result::{ExecuteResult, HostOutput},
     utils::build_start_set,
     vm::{Vm, VmContext, VmResult, VmState},
@@ -35,22 +35,20 @@ fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
         VmResult::Waiting { call_id, state } => {
             // Memory dance: move memory from Option to ref before pausing
             if let Some(memory) = vm.memory.take() {
-                let _ = memory_put(&vm.memory_ref, memory).to_nif()?;
+                let _ = put_owned(&vm.memory_ref, memory).to_nif()?;
             }
 
             // Send message to Elixir with VmState + memory_ref
             let mut owned_env = OwnedEnv::new();
-            let pid = env.pid();
             let memory_ref = vm.memory_ref.clone();
             let used_gas = vm.state.gas.saturating_sub(state.gas);
 
-            if let Err(_) = owned_env.send_and_clear(&pid, move |env| {
+            if let Err(_) = owned_env.send_and_clear(&env.pid(), move |env| {
                 (atoms::ecall(), call_id, state, memory_ref).encode(env)
             }) {
                 return Err(to_rustler_error!(atoms::send_failed()));
             }
 
-            // Return waiting status - Elixir will call resume with updated state
             Ok(ExecuteResult {
                 used_gas,
                 output: HostOutput::Atom(atoms::waiting()),
@@ -62,7 +60,12 @@ fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
                 VmResult::Halt { state } => {
                     let start = state.registers[7] as usize;
                     let len = state.registers[8] as usize;
-                    match vm.memory.as_ref().expect("Memory not available").read(start, len) {
+                    match vm
+                        .memory
+                        .as_ref()
+                        .expect("Memory not available")
+                        .read(start, len)
+                    {
                         Ok(bytes) => HostOutput::Bytes(bytes.to_vec()),
                         Err(_) => HostOutput::Bytes(vec![]),
                     }
@@ -145,7 +148,7 @@ fn resume<'a>(
         .ok_or(to_rustler_error!(atoms::no_vm_context()))?
         .clone();
 
-    let memory = memory_take(&memory_ref).to_nif()?;
+    let memory = get_owned(&memory_ref).to_nif()?;
 
     let vm = Vm::new(context, new_state, memory_ref, memory);
 
