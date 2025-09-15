@@ -8,6 +8,9 @@ pub const MIN_ADDR: usize = ZZ;
 pub const MEMORY_SIZE: usize = MAX_ADDR;
 pub const LAYOUT_BUFFER_SIZE: usize = ZI;
 
+// Access control: 2 bits per page, 32 pages per 64-bit word
+pub const PAGES_PER_ACCESS_WORD: usize = 32;
+
 pub const GAS_COST: u64 = 1;
 
 pub const TERMINATION_INSTRUCTIONS: [bool; 231] = {

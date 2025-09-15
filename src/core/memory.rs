@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::{
     atoms,
-    core::consts::{MEMORY_SIZE, MIN_ADDR, PAGE_SIZE},
+    core::consts::{MEMORY_SIZE, MIN_ADDR, PAGES_PER_ACCESS_WORD, PAGE_SIZE},
     to_rustler_error, ToNifResult,
 };
 use memmap::{MmapMut, MmapOptions};
@@ -50,7 +50,7 @@ impl Memory {
     pub fn builder() -> MemoryBuilder {
         let mmap = MmapOptions::new().len(MEMORY_SIZE).map_anon().unwrap();
         let total_pages = MEMORY_SIZE / PAGE_SIZE;
-        let access_entries = (total_pages + 31) / 32;
+        let access_entries = total_pages.div_ceil(PAGES_PER_ACCESS_WORD);
         let memory = Memory {
             mmap,
             access: vec![0; access_entries],
@@ -58,6 +58,20 @@ impl Memory {
             max_heap_pointer: MEMORY_SIZE,
         };
         MemoryBuilder { memory }
+    }
+
+    pub fn test_memory(num_pages: usize) -> Memory {
+        let mmap = MmapOptions::new()
+            .len(num_pages * PAGE_SIZE)
+            .map_anon()
+            .unwrap();
+        let access_entries = num_pages.div_ceil(PAGES_PER_ACCESS_WORD);
+        Memory {
+            mmap,
+            access: vec![u64::MAX; access_entries], // read and write are allowed
+            current_heap_pointer: 0,
+            max_heap_pointer: num_pages * PAGE_SIZE,
+        }
     }
 
     #[inline(always)]
