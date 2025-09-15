@@ -1,5 +1,6 @@
 use crate::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
 use crate::memory::{Memory, Permission};
+use crate::registers::Registers;
 
 pub struct ProgramSegments<'a> {
     pub program_text: &'a [u8],
@@ -67,7 +68,7 @@ pub fn parse_program_segments<'a>(
 pub fn initialize_program<'a>(
     program: &'a [u8],
     args: &'a [u8],
-) -> Option<(&'a [u8], [u64; 13], Memory)> {
+) -> Option<(&'a [u8], Registers, Memory)> {
     let program_segments = parse_program_segments(program).ok()?;
     let program_text_size = program_segments.program_text.len();
     let data_size = program_segments.data.len();
@@ -81,7 +82,7 @@ pub fn initialize_program<'a>(
     {
         return None;
     }
-    let registers = [
+    let registers = Registers::from_slice([
         0xFFFF_0000,       // register 0
         0xFEFE_0000,       // register 1
         0,                 // register 2
@@ -95,7 +96,7 @@ pub fn initialize_program<'a>(
         0,                 // register 10
         0,                 // register 11
         0,                 // register 12
-    ];
+    ]);
     let memory = construct_memory(&program_segments, args);
     Some((program_segments.code, registers, memory))
 }

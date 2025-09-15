@@ -5,6 +5,7 @@ pub mod encoder;
 pub mod errors;
 pub mod init_program;
 pub mod memory;
+pub mod registers;
 pub mod types;
 pub mod utils;
 pub mod vm;
@@ -31,9 +32,35 @@ fn load(env: Env, _info: Term) -> bool {
 
 fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
     let result = vm.execute();
+    let used_gas = result.state().used_gas(vm.state.gas);
     match result {
-        VmResult::Waiting { call_id, state } => {
-            // Memory dance: move memory from Option to ref before pausing
+        VmResult::Halt { state } => {
+            let start = state.registers.get(7) as usize;
+            let len = state.registers.get(8) as usize;
+            let output = match vm
+                .memory
+                .as_ref()
+                .expect("Memory not available")
+                .read(start, len)
+            {
+                Ok(bytes) => HostOutput::Bytes(bytes.to_vec()),
+                Err(_) => HostOutput::Bytes(vec![]),
+            };
+            Ok(ExecuteResult { used_gas, output })
+        }
+        VmResult::Panic { .. } => Ok(ExecuteResult {
+            used_gas,
+            output: HostOutput::Atom(atoms::panic()),
+        }),
+        VmResult::OutOfGas { .. } => Ok(ExecuteResult {
+            used_gas,
+            output: HostOutput::Atom(atoms::out_of_gas()),
+        }),
+        VmResult::Fault { .. } => Ok(ExecuteResult {
+            used_gas,
+            output: HostOutput::Atom(atoms::panic()),
+        }),
+        VmResult::HostCall { call_id, state } => {
             if let Some(memory) = vm.memory.take() {
                 let _ = put_owned(&vm.memory_ref, memory).to_nif()?;
             }
@@ -41,7 +68,6 @@ fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
             // Send message to Elixir with VmState + memory_ref
             let mut owned_env = OwnedEnv::new();
             let memory_ref = vm.memory_ref.clone();
-            let used_gas = vm.state.gas.saturating_sub(state.gas);
 
             if let Err(_) = owned_env.send_and_clear(&env.pid(), move |env| {
                 (atoms::ecall(), call_id, state, memory_ref).encode(env)
@@ -53,30 +79,6 @@ fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
                 used_gas,
                 output: HostOutput::Atom(atoms::waiting()),
             })
-        }
-        _ => {
-            let used_gas = vm.state.gas.saturating_sub(result.state().gas);
-            let output = match result {
-                VmResult::Halt { state } => {
-                    let start = state.registers[7] as usize;
-                    let len = state.registers[8] as usize;
-                    match vm
-                        .memory
-                        .as_ref()
-                        .expect("Memory not available")
-                        .read(start, len)
-                    {
-                        Ok(bytes) => HostOutput::Bytes(bytes.to_vec()),
-                        Err(_) => HostOutput::Bytes(vec![]),
-                    }
-                }
-                VmResult::Panic { .. } => HostOutput::Atom(atoms::panic()),
-                VmResult::OutOfGas { .. } => HostOutput::Atom(atoms::out_of_gas()),
-                VmResult::Fault { .. } => HostOutput::Atom(atoms::panic()),
-                VmResult::Waiting { .. } => HostOutput::Atom(atoms::waiting()),
-            };
-
-            Ok(ExecuteResult { used_gas, output })
         }
     }
 }
@@ -122,11 +124,7 @@ fn execute<'a>(
     // Store context globally for resume NIF to access
     let _ = VM_CONTEXT.set(context.clone());
 
-    let state = VmState {
-        registers: registers.to_vec(),
-        pc,
-        gas,
-    };
+    let state = VmState::new(registers, pc, gas);
 
     let vm = Vm::new(context, state, memory_ref.clone(), Some(memory));
 

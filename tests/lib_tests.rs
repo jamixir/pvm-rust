@@ -126,29 +126,29 @@ mod tests {
 
         // Verify registers are set correctly according to the function
         assert_eq!(
-            registers[0], 0xFFFF_0000,
+            registers.get(0), 0xFFFF_0000,
             "Register 0 should be set to 0xFFFF_0000"
         );
         assert_eq!(
-            registers[1], 0xFEFE_0000,
+            registers.get(1), 0xFEFE_0000,
             "Register 1 should be set to 0xFEFE_0000"
         );
         assert_eq!(
-            registers[7], 0xFEFF_0000,
+            registers.get(7), 0xFEFF_0000,
             "Register 7 should be set to 0xFEFF_0000"
         );
         assert_eq!(
-            registers[8],
+            registers.get(8),
             args.len() as u64,
             "Register 8 should contain args length"
         );
 
         // Verify other registers are zero
         for i in 2..=6 {
-            assert_eq!(registers[i], 0, "Register {} should be zero", i);
+            assert_eq!(registers.get(i), 0, "Register {} should be zero", i);
         }
         for i in 9..=12 {
-            assert_eq!(registers[i], 0, "Register {} should be zero", i);
+            assert_eq!(registers.get(i), 0, "Register {} should be zero", i);
         }
 
         assert!(!code.is_empty(), "Code segment should not be empty");
