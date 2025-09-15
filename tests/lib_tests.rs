@@ -163,12 +163,12 @@ mod tests {
             "Deblobed program should not be empty"
         );
         assert!(
-            !deblob_result.bitmask.is_empty(),
+            deblob_result.bitmask.size() > 0,
             "Bitmask should not be empty"
         );
 
         // Verify bitmask structure
-        let total_bits = deblob_result.bitmask.len() * 64;
+        let total_bits = deblob_result.bitmask.size() * 64;
         assert!(
             total_bits >= deblob_result.program.len(),
             "Bitmask should have enough bits for program length"
@@ -179,8 +179,8 @@ mod tests {
         let word_index = trap_pos / 64;
         let bit_index = trap_pos % 64;
 
-        if word_index < deblob_result.bitmask.len() {
-            let trap_bit = (deblob_result.bitmask[word_index] >> bit_index) & 1;
+        if word_index < deblob_result.bitmask.size() {
+            let trap_bit = (deblob_result.bitmask.as_slice()[word_index] >> bit_index) & 1;
             assert_eq!(trap_bit, 1, "Trap bit should be set at program end");
         }
 

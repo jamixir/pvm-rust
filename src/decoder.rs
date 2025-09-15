@@ -1,6 +1,8 @@
+use crate::bitmask::{BitMask};
+
 pub struct Deblob {
     pub program: Vec<u8>,
-    pub bitmask: Vec<u64>,
+    pub bitmask: BitMask,
     pub jump_table: Vec<u64>,
 }
 
@@ -12,8 +14,8 @@ pub fn deblob(bin: &[u8]) -> Deblob {
     let (jump_table, rest) = decode_jump_table(rest, jump_len as usize, z);
 
     let (program_bytes, bitmask_bytes) = rest.split_at(prog_len as usize);
-    let mut bitmask = pack_bitmask_le(bitmask_bytes);
-    add_trap_bit(&mut bitmask, prog_len as usize);
+    let mut bitmask = pack_bitmask(bitmask_bytes);
+    bitmask.set_bit(prog_len as usize);
 
     Deblob {
         program: program_bytes.to_vec(),
@@ -22,7 +24,7 @@ pub fn deblob(bin: &[u8]) -> Deblob {
     }
 }
 
-pub fn pack_bitmask_le(bytes: &[u8]) -> Vec<u64> {
+pub fn pack_bitmask(bytes: &[u8]) -> BitMask {
     let mut words: Vec<u64> = bytes
         .chunks_exact(8)
         .map(|chunk| u64::from_le_bytes(chunk.try_into().unwrap()))
@@ -34,17 +36,7 @@ pub fn pack_bitmask_le(bytes: &[u8]) -> Vec<u64> {
         buf[..remainder.len()].copy_from_slice(&remainder);
         words.push(u64::from_le_bytes(buf));
     }
-    words
-}
-
-pub fn add_trap_bit(bitmask: &mut Vec<u64>, trap_pos: usize) {
-    let word_index = trap_pos >> 6;
-    let bit_index = trap_pos & 63;
-
-    if word_index >= bitmask.len() {
-        bitmask.resize(word_index + 1, 0);
-    }
-    bitmask[word_index] |= 1 << bit_index;
+    BitMask::from_vec(words)
 }
 
 #[inline(always)]
@@ -131,4 +123,3 @@ fn decode_jump_table(mut bin: &[u8], size: usize, z: u64) -> (Vec<u64>, &[u8]) {
 
     (values, bin)
 }
-

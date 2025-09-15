@@ -1,4 +1,5 @@
 pub mod atoms;
+pub mod bitmask;
 pub mod consts;
 pub mod decoder;
 pub mod encoder;
@@ -7,20 +8,14 @@ pub mod init_program;
 pub mod memory;
 pub mod registers;
 pub mod types;
-pub mod utils;
 pub mod vm;
+pub mod start_set;
 
 use rustler::{Binary, Decoder, Encoder, Env, NifResult, OwnedEnv, Term};
 use std::sync::{Arc, OnceLock};
 
 use crate::{
-    decoder::{deblob, Deblob},
-    errors::{to_rustler_error, ToNifResult},
-    init_program::initialize_program,
-    memory::{get_owned, put_owned, MemoryRef, MemoryResource},
-    types::host_result::{ExecuteResult, HostOutput},
-    utils::build_start_set,
-    vm::{Vm, VmContext, ExecutionResult, VmState},
+    decoder::{deblob, Deblob}, errors::{to_rustler_error, ToNifResult}, init_program::initialize_program, memory::{get_owned, put_owned, MemoryRef, MemoryResource}, start_set::StartSet, types::host_result::{ExecuteResult, HostOutput}, vm::{ExecutionResult, Vm, VmContext, VmState}
 };
 
 static VM_CONTEXT: OnceLock<Arc<VmContext>> = OnceLock::new();
@@ -120,7 +115,7 @@ fn execute<'a>(
         bitmask,
         jump_table,
     } = deblob(code);
-    let start_set = build_start_set(&program, &bitmask);
+    let start_set = StartSet::build(&program, &bitmask);
 
     let context = Arc::new(VmContext {
         program,
