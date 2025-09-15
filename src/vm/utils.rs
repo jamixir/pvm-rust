@@ -5,10 +5,10 @@ impl Vm {
     pub fn next_counter(&self, exit_reason: &InstructionResult, prev_counter: usize) -> usize {
         match exit_reason {
             InstructionResult::Continue => {
-                prev_counter + 1 + self.context.bitmask.skip(prev_counter).unwrap_or(0)
+                prev_counter + 1 + self.context.bitmask.skip(prev_counter)
             }
             InstructionResult::Ecall { .. } => {
-                prev_counter + 1 + self.context.bitmask.skip(prev_counter).unwrap_or(0)
+                prev_counter + 1 + self.context.bitmask.skip(prev_counter)
             }
             InstructionResult::Jump(destination) => *destination,
             InstructionResult::Halt => 0,
@@ -30,7 +30,7 @@ pub fn decode_and_extend(program: &[u8], start_index: usize, count: usize) -> u6
 /// Extend value to 64-bit
 #[inline(always)]
 pub fn extend_to_64bit(x: u64, n: usize) -> u64 {
-    let shift = 64u32.wrapping_sub((n * 8) as u32);
+    let shift = (64u32.wrapping_sub((n * 8) as u32)) & 63;
     ((x << shift) as i64 >> shift) as u64
 }
 

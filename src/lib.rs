@@ -55,7 +55,7 @@ fn execute<'a>(
         bitmask,
         jump_table,
     } = deblob(code);
-    let start_set = StartSet::build(&program, &bitmask);
+    let start_set = StartSet::build(&program.as_slice(), &bitmask);
 
     let context = Arc::new(VmContext {
         program,

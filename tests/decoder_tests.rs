@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use pvm::{
-        core::BitMask,
+        core::{BitMask, Program},
         encoding::{deblob, encode_program},
     };
 
@@ -10,10 +10,10 @@ mod tests {
         bitmask: &[u8],
         jump_table: &[u64],
         z: u64,
-    ) -> (Vec<u8>, BitMask, Vec<u64>) {
+    ) -> (Program, BitMask, Vec<u64>) {
         let encoded = encode_program(program, bitmask, jump_table, z);
         let blob = deblob(&encoded);
-        (blob.program.to_vec(), blob.bitmask, blob.jump_table)
+        (blob.program, blob.bitmask, blob.jump_table)
     }
 
     #[test]
@@ -26,7 +26,7 @@ mod tests {
         let (decoded_program, decoded_bitmask, decoded_jump_table) =
             encode_decode(program, bitmask, jump_table, z);
 
-        assert_eq!(decoded_program, program);
+        assert_eq!(decoded_program.as_slice(), program);
         assert_eq!(decoded_jump_table, jump_table);
         assert_eq!(decoded_bitmask.size(), 1);
     }
@@ -41,7 +41,7 @@ mod tests {
         let (decoded_program, decoded_bitmask, decoded_jump_table) =
             encode_decode(program, bitmask, jump_table, z);
 
-        assert_eq!(decoded_program, program);
+        assert_eq!(decoded_program.as_slice(), program);
         assert_eq!(decoded_jump_table, jump_table);
         assert_eq!(decoded_bitmask.size(), 1);
     }
@@ -56,7 +56,7 @@ mod tests {
         let (decoded_program, _decoded_bitmask, decoded_jump_table) =
             encode_decode(program, bitmask, jump_table, z);
 
-        assert_eq!(decoded_program, program);
+        assert_eq!(decoded_program.as_slice(), program);
         assert_eq!(decoded_jump_table, jump_table);
     }
 
@@ -70,7 +70,7 @@ mod tests {
         let (decoded_program, decoded_bitmask, decoded_jump_table) =
             encode_decode(program, bitmask, jump_table, z);
 
-        assert_eq!(decoded_program, program);
+        assert_eq!(decoded_program.as_slice(), program);
         assert_eq!(decoded_jump_table, jump_table);
         assert_ne!(decoded_bitmask.size(), 0);
     }
@@ -99,25 +99,21 @@ mod tests {
 
 #[cfg(test)]
 mod bitmask_skip_tests {
-    use pvm::{core::BitMask, encoding::pack_bitmask};
+    use pvm::core::BitMask;
 
     fn compute_skips(bitmask: &BitMask) -> Vec<usize> {
         let mut skips = Vec::new();
         let mut pc = 0;
 
         loop {
-            let skip_distance = bitmask.skip(pc);
-            if skip_distance.is_none() {
+            // Stop if we've gone beyond the program limit
+            if pc >= bitmask.program_limit() {
                 break;
             }
-            let skip_distance = skip_distance.unwrap();
 
-            if pc + skip_distance < bitmask.size() * 64 {
-                skips.push(skip_distance);
-                pc += skip_distance + 1; //
-            } else {
-                break;
-            }
+            let skip_distance = bitmask.skip(pc);
+            skips.push(skip_distance);
+            pc += skip_distance + 1;
         }
 
         skips
@@ -126,9 +122,9 @@ mod bitmask_skip_tests {
     #[test]
     fn bitmask_packing_and_skip_consistency() {
         let bitmask_bytes = &[0b1010_0001, 0b0000_0100];
-        let packed = pack_bitmask(bitmask_bytes);
+        let packed = BitMask::from_bytes(bitmask_bytes, 11);
 
-        let expected_skips = vec![4, 1, 2];
+        let expected_skips = vec![4, 1, 2, 0];
 
         let actual_skips = compute_skips(&packed);
 
@@ -142,8 +138,7 @@ mod bitmask_skip_tests {
     fn bitmask_with_trap_and_skips() {
         let bitmask_bytes = &[0b1010_1011, 0b0001_0000];
         let prog_len = 13; // cut program length to force trap in last bits
-        let mut packed = pack_bitmask(bitmask_bytes);
-        packed.set_bit(prog_len);
+        let packed = BitMask::from_bytes(bitmask_bytes, prog_len);
 
         let actual_skips = compute_skips(&packed);
 
@@ -163,11 +158,10 @@ mod bitmask_skip_tests {
         // Bit positions (0-indexed): 0, 8, 16, 24, 32, 40, 48, 56, 63
         // First bit is always 1 (program starts from instruction)
         let bitmask_bytes = &[0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x81]; // 8 bytes = 1 u64
-        let mut packed = pack_bitmask(bitmask_bytes);
         let prog_len = 60; // Program shorter than full bitmask
-        packed.set_bit(prog_len);
+        let packed = BitMask::from_bytes(bitmask_bytes, prog_len);
 
-        let expected_skips = vec![7, 7, 7, 7, 7, 7, 7, 3, 2];
+        let expected_skips = vec![7, 7, 7, 7, 7, 7, 7, 3];
         let actual_skips = compute_skips(&packed);
         assert_eq!(expected_skips, actual_skips, "Single u64 skip mismatch");
     }
@@ -177,24 +171,21 @@ mod bitmask_skip_tests {
         let bitmask_bytes = &[0x05]; // Binary: 0000_0101 (bits 0 and 2 set)
 
         // Test 1:(trap at bit 3)
-        let mut packed1 = pack_bitmask(bitmask_bytes);
-        packed1.set_bit(3);
+        let packed1 = BitMask::from_bytes(bitmask_bytes, 3);
         // Set bits: 0, 2, 3 (trap) -> skip distances: 1, 0
         let expected_skips1 = vec![1, 0];
         let actual_skips1 = compute_skips(&packed1);
         assert_eq!(expected_skips1, actual_skips1, "Short program trap effect");
 
         // Test 2:  (trap at bit 5)
-        let mut packed2 = pack_bitmask(bitmask_bytes);
-        packed2.set_bit(5);
+        let packed2 = BitMask::from_bytes(bitmask_bytes, 5);
         // Set bits: 0, 2, 5 (trap) -> skip distances: 1, 2
         let expected_skips2 = vec![1, 2];
         let actual_skips2 = compute_skips(&packed2);
         assert_eq!(expected_skips2, actual_skips2, "Medium program trap effect");
 
         // Test 3: (trap at bit 10)
-        let mut packed3 = pack_bitmask(bitmask_bytes);
-        packed3.set_bit(10);
+        let packed3 = BitMask::from_bytes(bitmask_bytes, 10);
         // Set bits: 0, 2, 10 (trap) -> skip distances: 1, 7
         let expected_skips3 = vec![1, 7];
         let actual_skips3 = compute_skips(&packed3);

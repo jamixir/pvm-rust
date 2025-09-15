@@ -1,7 +1,7 @@
-use crate::core::BitMask;
+use crate::core::{BitMask, Program};
 
 pub struct Deblob {
-    pub program: Vec<u8>,
+    pub program: Program,
     pub bitmask: BitMask,
     pub jump_table: Vec<u64>,
 }
@@ -14,29 +14,15 @@ pub fn deblob(bin: &[u8]) -> Deblob {
     let (jump_table, rest) = decode_jump_table(rest, jump_len as usize, z);
 
     let (program_bytes, bitmask_bytes) = rest.split_at(prog_len as usize);
-    let mut bitmask = pack_bitmask(bitmask_bytes);
-    bitmask.set_bit(prog_len as usize);
+    let program = Program::new(program_bytes);
+
+    let bitmask = BitMask::from_bytes(bitmask_bytes, prog_len as usize);
 
     Deblob {
-        program: program_bytes.to_vec(),
+        program,
         bitmask,
         jump_table,
     }
-}
-
-pub fn pack_bitmask(bytes: &[u8]) -> BitMask {
-    let mut words: Vec<u64> = bytes
-        .chunks_exact(8)
-        .map(|chunk| u64::from_le_bytes(chunk.try_into().unwrap()))
-        .collect();
-
-    let remainder = bytes.chunks_exact(8).remainder();
-    if !remainder.is_empty() {
-        let mut buf = [0u8; 8];
-        buf[..remainder.len()].copy_from_slice(&remainder);
-        words.push(u64::from_le_bytes(buf));
-    }
-    BitMask::from_vec(words)
 }
 
 #[inline(always)]

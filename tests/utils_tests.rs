@@ -1,52 +1,52 @@
 #[cfg(test)]
 mod tests {
-    use pvm::{core::StartSet, encoding::pack_bitmask};
+    use pvm::core::{BitMask, StartSet};
 
     #[test]
     fn test_skip_basic_patterns() {
-        let bitmask = pack_bitmask(&[0b11]); //
+        let bitmask = BitMask::from_bytes(&[0b11], 1);
         let skip_distance = bitmask.skip(0);
-        assert_eq!(skip_distance, Some(0));
+        assert_eq!(skip_distance, 0);
 
-        let bitmask = pack_bitmask(&[0b1001]);
-        assert_eq!(bitmask.skip(0), Some(2));
+        let bitmask = BitMask::from_bytes(&[0b1001], 3);
+        assert_eq!(bitmask.skip(0), 2);
 
-        let bitmask = pack_bitmask(&[0b1, 0b1]);
-        assert_eq!(bitmask.skip(0), Some(7));
+        let bitmask = BitMask::from_bytes(&[0b1, 0b1], 8);
+        assert_eq!(bitmask.skip(0), 7);
     }
 
     #[test]
     fn test_skip_complex_instructions() {
         // Complex pattern: bit pattern 10010100 = 148
         // Bits 2, 4, 7 are set (positions 2, 4, 7 in little-endian)
-        let bitmask = pack_bitmask(&[0b0101_0001, 0b10]); // 0b10010100
+        let bitmask = BitMask::from_bytes(&[0b0101_0001, 0b10], 9); // 0b10010100
 
         // From position 0, next instruction is at position 2 (skip 1)
-        assert_eq!(bitmask.skip(0), Some(3));
+        assert_eq!(bitmask.skip(0), 3);
 
         // From position 2, next instruction is at position 4 (skip 1)
-        assert_eq!(bitmask.skip(4), Some(1));
+        assert_eq!(bitmask.skip(4), 1);
 
         // From position 4, next instruction is at position 7 (skip 2)
-        assert_eq!(bitmask.skip(6), Some(2));
+        assert_eq!(bitmask.skip(6), 2);
 
         // From position 7, no more instructions
-        assert_eq!(bitmask.skip(9), None);
+        assert_eq!(bitmask.skip(9), 0); // Trap instruction at position 10
     }
 
     #[test]
     fn test_skip_boundary_conditions() {
-        // At end of bitmask - bit pattern: 10000000 = 128
-        let bitmask = pack_bitmask(&[0b1]); // 0b10000000, only bit 7 set
-        assert_eq!(bitmask.skip(7), None); // At end, no next instruction
+        // At end of bitmask - bit pattern: 10000000 = 128 (only bit 7 set)
+        let bitmask = BitMask::from_bytes(&[0b10000000], 8); // 0b10000000, only bit 7 set
+        assert_eq!(bitmask.skip(7), 0); // Next instruction is trap at position 8
 
         // Beyond bitmask length
-        let bitmask = pack_bitmask(&[0b1]); // 0b10000000
-        assert_eq!(bitmask.skip(8), None); // Beyond length
+        let bitmask = BitMask::from_bytes(&[0b1], 8); // 0b00000001
+        assert_eq!(bitmask.skip(8), 0); // Trap instruction due to padding
 
         // Empty bitmask
-        let bitmask = pack_bitmask(&[]);
-        assert_eq!(bitmask.skip(0), None);
+        let bitmask = BitMask::from_bytes(&[], 0);
+        assert_eq!(bitmask.skip(0), 0); // Trap instruction due to padding
     }
 
     #[test]
@@ -54,7 +54,7 @@ mod tests {
         // Program: [trap, fallthrough, store_imm_u8, imm1, imm2]
         let program = vec![0x00, 0x01, 0x3E, 0x01, 0x05];
         // Bitmask with instructions at positions 0, 1, 2 (bits 0, 1, 2 set = 0b00000111 = 7)
-        let bitmask = pack_bitmask(&[7]); // 0b00000111
+        let bitmask = BitMask::from_bytes(&[7], program.len()); // 0b00000111
 
         let starts = StartSet::build(&program, &bitmask);
 
@@ -73,8 +73,7 @@ mod tests {
         // Program: [jump, imm1, imm2, branch_eq, imm1, imm2]
         let program = vec![0x28, 0x01, 0x05, 0xAA, 0x01, 0x0A]; // 0x28=40=jump, 0xAA=170=branch_eq
                                                                 // Instructions at positions 0 and 3 (bits 0 and 3 set = 0b00001001 = 9)
-        let mut bitmask = pack_bitmask(&[9]); // 0b00001001
-        bitmask.set_bit(program.len());
+        let bitmask = BitMask::from_bytes(&[9], program.len()); // 0b00001001
 
         let starts = StartSet::build(&program, &bitmask);
 
@@ -92,7 +91,7 @@ mod tests {
     fn test_build_start_set_no_termination_instructions() {
         // Program with only non-termination instruction: store_imm_u8
         let program = vec![0x3E, 0x01, 0x05];
-        let bitmask = pack_bitmask(&[1]); // Only bit 0 set = 0b1
+        let bitmask = BitMask::from_bytes(&[1], program.len()); // Only bit 0 set = 0b1
 
         let starts = StartSet::build(&program, &bitmask);
 
@@ -108,7 +107,7 @@ mod tests {
     fn test_build_start_set_multiple_termination_instructions() {
         // Program: [fallthrough, trap, jump, imm1, imm2]
         let program = vec![0x01, 0x00, 0x28, 0x01, 0x05]; // fallthrough, trap, jump
-        let bitmask = pack_bitmask(&[7]); // Bits 0, 1, 2 set = 0b00000111 = 7
+        let bitmask = BitMask::from_bytes(&[7], program.len()); // Bits 0, 1, 2 set = 0b00000111 = 7
 
         let starts = StartSet::build(&program, &bitmask);
 

@@ -164,7 +164,7 @@ mod tests {
 
         // Verify deblob results
         assert!(
-            !deblob_result.program.is_empty(),
+            !deblob_result.program.as_slice().is_empty(),
             "Deblobed program should not be empty"
         );
         assert!(

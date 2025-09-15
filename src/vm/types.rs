@@ -1,4 +1,4 @@
-use crate::core::{BitMask, Registers, StartSet};
+use crate::core::{BitMask, Program, Registers, StartSet};
 use rustler::NifStruct;
 #[derive(Debug, Clone, PartialEq)]
 
@@ -61,7 +61,7 @@ impl VmState {
 
 #[derive(Debug)]
 pub struct VmContext {
-    pub program: Vec<u8>,
+    pub program: Program,
     pub bitmask: BitMask,
     pub jump_table: Vec<u64>,
     pub start_set: StartSet,

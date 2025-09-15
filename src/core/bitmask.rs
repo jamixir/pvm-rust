@@ -1,8 +1,7 @@
-use std::cmp::min;
-
 #[derive(Debug)]
 pub struct BitMask {
     pub bits: Vec<u64>,
+    limit: usize,
 }
 
 impl BitMask {
@@ -10,20 +9,30 @@ impl BitMask {
         (index >> 6, index & 63)
     }
 
-    pub fn new(size: usize) -> Self {
-        Self {
-            bits: vec![0u64; size],
-        }
-    }
-
     pub fn from_vec(bits: Vec<u64>) -> Self {
-        Self { bits }
+        let limit = bits.len();
+        Self { bits, limit }
     }
 
-    pub fn from_slice(bits: &[u64]) -> Self {
-        Self {
-            bits: bits.to_vec(),
+    pub fn from_bytes(bytes: &[u8], program_length: usize) -> Self {
+        let mut words: Vec<u64> = bytes
+            .chunks_exact(8)
+            .map(|chunk| u64::from_le_bytes(chunk.try_into().unwrap()))
+            .collect();
+
+        let remainder = bytes.chunks_exact(8).remainder();
+        if !remainder.is_empty() {
+            let mut buf = [0u8; 8];
+            buf[..remainder.len()].copy_from_slice(&remainder);
+            words.push(u64::from_le_bytes(buf));
         }
+
+        let mut bitmask = Self {
+            bits: words,
+            limit: program_length,
+        };
+        bitmask.pad();
+        bitmask
     }
 
     pub fn as_slice(&self) -> &[u64] {
@@ -35,9 +44,16 @@ impl BitMask {
             self.bits.resize(index + 1, 0);
         }
     }
-
     pub fn size(&self) -> usize {
-        self.bits.len()
+        (self.limit + 63) >> 6
+    }
+
+    pub fn program_limit(&self) -> usize {
+        self.limit
+    }
+
+    pub fn set_limit(&mut self, limit: usize) {
+        self.limit = limit;
     }
 
     #[inline(always)]
@@ -58,28 +74,46 @@ impl BitMask {
         self.bits[word_index] |= 1u64 << bit_index;
     }
     #[inline(always)]
-    pub fn skip(&self, pc: usize) -> Option<usize> {
+    pub fn skip(&self, pc: usize) -> usize {
         let word_index = (pc + 1) >> 6;
         let bit_index = (pc + 1) & 63;
+        let limit = self.bits.len();
 
-        if word_index >= self.size() {
-            return None;
-        }
-        let word = self.bits[word_index];
-        let mask = word >> (bit_index);
-        if mask != 0 {
-            return Some(min(mask.trailing_zeros() as usize, 24));
-        }
-        if word_index + 1 >= self.size() {
-            return None;
-        }
-        let this_word_remaining_zeros: usize = 64 - bit_index;
-        let next_word = self.bits[word_index + 1];
+        let curr = unsafe {
+            if word_index < limit {
+                *self.bits.as_ptr().add(word_index)
+            } else {
+                0
+            }
+        };
+        let next = unsafe {
+            if word_index + 1 < limit {
+                *self.bits.as_ptr().add(word_index + 1)
+            } else {
+                0
+            }
+        };
 
-        let next_word_trailing_zeros = next_word.trailing_zeros() as usize;
-        return Some(min(
-            this_word_remaining_zeros + next_word_trailing_zeros,
-            24,
-        ));
+        let masked = curr >> bit_index;
+        let remain_curr = 64 - bit_index;
+
+        let tz_masked = masked.trailing_zeros() as usize;
+        let tz_next = next.trailing_zeros() as usize;
+
+        let flag = ((masked == 0) as usize).wrapping_neg();
+
+        let skip = (tz_masked & !flag) | ((remain_curr + tz_next) & flag);
+        skip.min(24)
+    }
+
+    #[inline]
+    pub fn pad(&mut self) {
+        let (word_index, bit_index) = self.to_index(self.limit);
+        self.assure_capacity(word_index);
+
+        let upper_mask = u64::MAX << bit_index;
+        self.bits[word_index] |= upper_mask;
+
+        self.bits.push(u64::MAX);
     }
 }

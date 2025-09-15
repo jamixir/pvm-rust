@@ -27,16 +27,12 @@ impl StartSet {
             // Check if current position is a set bit in the bitmask
             if bitmask.is_set(pos) && TERMINATION_INSTRUCTIONS[opcode as usize] {
                 // Mark the next instruction after termination as jumpable
-                if let Some(next_pos) = bitmask.skip(pos) {
-                    start_set.add(pos + 1 + next_pos);
-                }
+                let next_pos = bitmask.skip(pos);
+                start_set.add(pos + 1 + next_pos);
             }
 
-            if let Some(skip_count) = bitmask.skip(pos) {
-                pos += 1 + skip_count;
-            } else {
-                break;
-            }
+            let skip_count = bitmask.skip(pos);
+            pos += 1 + skip_count;
         }
 
         start_set
