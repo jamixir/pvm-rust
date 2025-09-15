@@ -1,6 +1,6 @@
-use crate::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
-use crate::memory::{Memory, Permission};
-use crate::registers::Registers;
+use crate::core::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
+use crate::core::{Memory, Permission};
+use crate::core::Registers;
 
 pub struct ProgramSegments<'a> {
     pub program_text: &'a [u8],

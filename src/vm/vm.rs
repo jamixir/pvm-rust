@@ -2,8 +2,8 @@ use rustler::{Encoder, Env, NifResult, OwnedEnv};
 
 use crate::{
     atoms,
-    errors::ToNifResult,
-    memory::{put_owned, Memory, MemoryRef},
+    core::errors::ToNifResult,
+    core::{put_owned, Memory, MemoryRef},
     types::host_result::{ExecuteResult, HostOutput},
     vm::{ExecutionResult, StepResult, VmContext, VmState},
 };

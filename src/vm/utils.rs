@@ -1,4 +1,4 @@
-use crate::start_set::StartSet;
+use crate::core::StartSet;
 use crate::vm::{InstructionResult, Vm};
 
 impl Vm {

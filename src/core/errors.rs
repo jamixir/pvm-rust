@@ -1,3 +1,21 @@
+use rustler::NifResult;
+
+use crate::{
+    atoms,
+    core::memory::{FaultError, MemoryError, MutexError},
+};
+
+ macro_rules! to_rustler_error {
+    ($atom:expr) => {
+        rustler::Error::Term(Box::new($atom))
+    };
+    ($struct_name:ident { $($field:ident: $value:expr),* $(,)? }) => {
+        rustler::Error::Term(Box::new($struct_name {
+            $($field: $value),*
+        }))
+    };
+}
+
 pub trait ToNifResult<T> {
     fn to_nif(self) -> NifResult<T>;
 }
@@ -27,20 +45,5 @@ impl<T> ToNifResult<T> for Result<T, MutexError> {
     }
 }
 
-macro_rules! to_rustler_error {
-    ($atom:expr) => {
-        rustler::Error::Term(Box::new($atom))
-    };
-    ($struct_name:ident { $($field:ident: $value:expr),* $(,)? }) => {
-        rustler::Error::Term(Box::new($struct_name {
-            $($field: $value),*
-        }))
-    };
-}
-use rustler::NifResult;
-pub(crate) use to_rustler_error;
 
-use crate::{
-    atoms,
-    memory::{FaultError, MemoryError, MutexError},
-};
+pub(crate) use to_rustler_error;

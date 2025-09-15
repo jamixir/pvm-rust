@@ -1,8 +1,8 @@
-use crate::vm::instructions::opcodes::*;
+use super::opcodes::*;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum InstructionCategory {
+ pub enum InstructionCategory {
     NoArgs,
     OneImmediate,
     TwoImmediates,
@@ -17,7 +17,7 @@ pub enum InstructionCategory {
     Unknown,
 }
 
-pub static OPCODE_CATEGORY: [InstructionCategory; 256] = {
+ static OPCODE_CATEGORY: [InstructionCategory; 256] = {
     let mut table = [InstructionCategory::Unknown; 256];
 
     // No args instructions

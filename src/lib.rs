@@ -1,13 +1,7 @@
 pub mod atoms;
-pub mod bitmask;
-pub mod consts;
-pub mod decoder;
-pub mod encoder;
-pub mod errors;
+pub mod core;
+pub mod encoding;
 pub mod init_program;
-pub mod memory;
-pub mod registers;
-pub mod start_set;
 pub mod types;
 pub mod vm;
 
@@ -15,11 +9,11 @@ use rustler::{Binary, Decoder, Env, NifResult, Term};
 use std::sync::{Arc, OnceLock};
 
 use crate::{
-    decoder::{deblob, Deblob},
-    errors::{to_rustler_error, ToNifResult},
+    encoding::{deblob, Deblob},
+    core::errors::{to_rustler_error, ToNifResult},
     init_program::initialize_program,
-    memory::{get_owned, MemoryRef, MemoryResource},
-    start_set::StartSet,
+    core::{get_owned, MemoryRef, MemoryResource},
+    core::StartSet,
     types::host_result::{ExecuteResult, HostOutput},
     vm::{Vm, VmContext, VmState},
 };

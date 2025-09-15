@@ -1,4 +1,4 @@
-use crate::vm::instructions::instruction_category::{get_category, InstructionCategory};
+use crate::vm::{get_category, InstructionCategory};
 use crate::vm::{dispatch_no_args, dispatch_one_immediate, InstructionResult, Vm};
 
 impl Vm {

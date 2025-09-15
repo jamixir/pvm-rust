@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pvm::{consts::*, decoder::deblob, init_program::initialize_program, memory::*};
+    use pvm::{core::{consts::*, Memory, MemoryError}, encoding::deblob, init_program::initialize_program};
 
     use std::fs;
 

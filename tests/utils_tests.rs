@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pvm::{decoder::*, start_set::StartSet};
+    use pvm::{core::StartSet, encoding::pack_bitmask};
 
     #[test]
     fn test_skip_basic_patterns() {

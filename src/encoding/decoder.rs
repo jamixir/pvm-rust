@@ -1,4 +1,4 @@
-use crate::bitmask::BitMask;
+use crate::core::BitMask;
 
 pub struct Deblob {
     pub program: Vec<u8>,

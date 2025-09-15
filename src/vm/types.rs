@@ -1,4 +1,4 @@
-use crate::{bitmask::BitMask, registers::Registers, start_set::StartSet};
+use crate::core::{BitMask, Registers, StartSet};
 use rustler::NifStruct;
 #[derive(Debug, Clone, PartialEq)]
 

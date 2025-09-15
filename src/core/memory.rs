@@ -1,9 +1,7 @@
 use std::sync::Mutex;
 
 use crate::{
-    atoms,
-    consts::{MEMORY_SIZE, MIN_ADDR, PAGE_SIZE},
-    to_rustler_error, ToNifResult,
+    atoms, core::consts::{MEMORY_SIZE, MIN_ADDR, PAGE_SIZE}, to_rustler_error, ToNifResult
 };
 use memmap::{MmapMut, MmapOptions};
 use rustler::{Binary, NifResult, NifTuple, Resource, ResourceArc};

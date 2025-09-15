@@ -1,4 +1,4 @@
-use crate::consts::GAS_COST;
+use crate::core::consts::GAS_COST;
 use crate::vm::types::StepResult;
 use crate::vm::Vm;
 

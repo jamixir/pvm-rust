@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pvm::{bitmask::BitMask, decoder::*, encoder::*};
+    use pvm::{core::BitMask, encoding::{deblob, encode_program}};
 
     fn encode_decode(
         program: &[u8],
@@ -96,7 +96,7 @@ mod tests {
 
 #[cfg(test)]
 mod bitmask_skip_tests {
-    use pvm::{bitmask::BitMask, decoder::*};
+    use pvm::{core::BitMask, encoding::pack_bitmask};
 
     fn compute_skips(bitmask: &BitMask) -> Vec<usize> {
         let mut skips = Vec::new();
