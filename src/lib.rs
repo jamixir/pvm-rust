@@ -11,17 +11,17 @@ pub mod start_set;
 pub mod types;
 pub mod vm;
 
-use rustler::{Binary, Decoder, Encoder, Env, NifResult, OwnedEnv, Term};
+use rustler::{Binary, Decoder, Env, NifResult, Term};
 use std::sync::{Arc, OnceLock};
 
 use crate::{
     decoder::{deblob, Deblob},
     errors::{to_rustler_error, ToNifResult},
     init_program::initialize_program,
-    memory::{get_owned, put_owned, MemoryRef, MemoryResource},
+    memory::{get_owned, MemoryRef, MemoryResource},
     start_set::StartSet,
     types::host_result::{ExecuteResult, HostOutput},
-    vm::{ExecutionResult, Vm, VmContext, VmState},
+    vm::{Vm, VmContext, VmState},
 };
 
 static VM_CONTEXT: OnceLock<Arc<VmContext>> = OnceLock::new();
@@ -29,66 +29,6 @@ static VM_CONTEXT: OnceLock<Arc<VmContext>> = OnceLock::new();
 rustler::init!("Elixir.Pvm.Native", load = load);
 fn load(env: Env, _info: Term) -> bool {
     env.register::<MemoryResource>().is_ok()
-}
-
-fn execute_vm<'a>(env: Env<'a>, mut vm: Vm) -> NifResult<ExecuteResult> {
-    let original_gas = vm.state.gas;
-    let result = vm.execute();
-    let used_gas = vm.state.used_gas(original_gas);
-
-    match result {
-        ExecutionResult::Halt => {
-            let start = vm.state.registers.get(7) as usize;
-            let len = vm.state.registers.get(8) as usize;
-            let output = match vm
-                .memory
-                .as_ref()
-                .expect("Memory not available")
-                .read(start, len)
-            {
-                Ok(bytes) => HostOutput::Bytes(bytes.to_vec()),
-                Err(_) => HostOutput::Bytes(vec![]),
-            };
-            Ok(ExecuteResult { used_gas, output })
-        }
-        ExecutionResult::Panic { .. } => Ok(ExecuteResult {
-            used_gas,
-            output: HostOutput::Atom(atoms::panic()),
-        }),
-        ExecutionResult::OutOfGas { .. } => Ok(ExecuteResult {
-            used_gas,
-            output: HostOutput::Atom(atoms::out_of_gas()),
-        }),
-        ExecutionResult::Fault { .. } => Ok(ExecuteResult {
-            used_gas,
-            output: HostOutput::Atom(atoms::panic()),
-        }),
-        ExecutionResult::HostCall { call_id } => {
-            if let Some(memory) = vm.memory.take() {
-                let _ = put_owned(&vm.memory_ref, memory).to_nif()?;
-            }
-
-            // Send message to Elixir with VmState + memory_ref
-            let pid = env.pid();
-            let memory_ref = vm.memory_ref.clone();
-            let state = vm.state.clone();
-
-            std::thread::spawn(move || {
-                let mut owned_env = OwnedEnv::new();
-
-                if let Err(e) = owned_env.send_and_clear(&pid, move |env| {
-                    (atoms::ecall(), call_id, state, memory_ref).encode(env)
-                }) {
-                    println!("ERROR: Failed to send ecall message: {:?}", e);
-                }
-            });
-
-            Ok(ExecuteResult {
-                used_gas,
-                output: HostOutput::Atom(atoms::waiting()),
-            })
-        }
-    }
 }
 
 #[rustler::nif(schedule = "DirtyCpu")]
@@ -134,9 +74,7 @@ fn execute<'a>(
 
     let state = VmState::new(registers, pc, gas);
 
-    let vm = Vm::new(context, state, memory_ref.clone(), Some(memory));
-
-    execute_vm(env, vm)
+    Vm::new(context, state, memory_ref.clone(), Some(memory)).arg_invoke(env)
 }
 
 #[rustler::nif(schedule = "DirtyCpu")]
@@ -146,6 +84,7 @@ fn resume<'a>(
     memory_ref_term: Term<'a>,
 ) -> NifResult<ExecuteResult> {
     let new_state: VmState = VmState::decode(new_state_term)?;
+    println!("Resuming VM with state: {:?}", new_state);
     let memory_ref: MemoryRef = MemoryRef::decode(memory_ref_term)?;
 
     // Get stored context from global storage
@@ -156,7 +95,5 @@ fn resume<'a>(
 
     let memory = get_owned(&memory_ref).to_nif()?;
 
-    let vm = Vm::new(context, new_state, memory_ref, memory);
-
-    execute_vm(env, vm)
+    Vm::new(context, new_state, memory_ref, memory).arg_invoke(env)
 }
