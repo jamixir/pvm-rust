@@ -36,8 +36,8 @@ impl From<InstructionResult> for StepResult {
 pub struct VmState {
     pub registers: Registers,
     pub pc: usize,
-    pub gas: u64,
-    pub overspent: u64,
+    pub initial_gas: u64,
+    pub spent_gas: u64,
 }
 
 impl VmState {
@@ -45,27 +45,17 @@ impl VmState {
         Self {
             registers,
             pc,
-            gas,
-            overspent: 0,
+            initial_gas: gas,
+            spent_gas: 0,
         }
     }
 
     pub fn consume_gas(&mut self, amount: u64) {
-        if amount > self.gas {
-            let diff = amount - self.gas;
-            self.gas = 0;
-            self.overspent += diff;
-        } else {
-            self.gas -= amount;
-        }
+        self.spent_gas += amount;
     }
 
     pub fn has_gas(&self) -> bool {
-        self.overspent == 0
-    }
-
-    pub fn used_gas(&self, original_gas: u64) -> u64 {
-        original_gas - self.gas + self.overspent
+        self.initial_gas >= self.spent_gas
     }
 }
 
