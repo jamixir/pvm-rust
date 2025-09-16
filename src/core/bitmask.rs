@@ -86,6 +86,11 @@ impl BitMask {
                 0
             }
         };
+        let masked = curr >> bit_index;
+
+        if masked != 0 {
+            return (masked.trailing_zeros() as usize).min(24);
+        }
         let next = unsafe {
             if word_index + 1 < limit {
                 *self.bits.as_ptr().add(word_index + 1)
@@ -94,16 +99,8 @@ impl BitMask {
             }
         };
 
-        let masked = curr >> bit_index;
         let remain_curr = 64 - bit_index;
-
-        let tz_masked = masked.trailing_zeros() as usize;
-        let tz_next = next.trailing_zeros() as usize;
-
-        let flag = ((masked == 0) as usize).wrapping_neg();
-
-        let skip = (tz_masked & !flag) | ((remain_curr + tz_next) & flag);
-        skip.min(24)
+        (remain_curr + next.trailing_zeros() as usize).min(24)
     }
 
     #[inline]

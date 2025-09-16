@@ -78,7 +78,6 @@ fn resume<'a>(
     memory_ref_term: Term<'a>,
 ) -> NifResult<ExecuteResult> {
     let new_state: VmState = VmState::decode(new_state_term)?;
-    println!("Resuming VM with state: {:?}", new_state);
     let memory_ref: MemoryRef = MemoryRef::decode(memory_ref_term)?;
 
     // Get stored context from global storage
