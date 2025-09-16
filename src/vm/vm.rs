@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 pub struct Vm {
     pub context: Arc<VmContext>,
-    pub memory_ref: MemoryRef,
+    pub memory_ref: Option<MemoryRef>,
     pub memory: Option<Memory>,
     pub state: VmState,
 }
@@ -25,7 +25,16 @@ impl Vm {
     ) -> Self {
         Self {
             context,
-            memory_ref,
+            memory_ref: Some(memory_ref),
+            memory,
+            state,
+        }
+    }
+
+    pub fn new_for_test(context: Arc<VmContext>, state: VmState, memory: Option<Memory>) -> Self {
+        Self {
+            context,
+            memory_ref: None,
             memory,
             state,
         }
@@ -78,13 +87,22 @@ impl Vm {
                 output: HostOutput::Atom(atoms::panic()),
             }),
             ExecutionResult::HostCall { call_id } => {
+                let memory_ref = match &self.memory_ref {
+                    Some(memory_ref) => memory_ref,
+                    None => {
+                        return Ok(ExecuteResult {
+                            used_gas,
+                            output: HostOutput::Atom(atoms::panic()),
+                        });
+                    }
+                };
                 if let Some(memory) = self.memory.take() {
-                    let _ = put_owned(&self.memory_ref, memory).to_nif()?;
+                    let _ = put_owned(memory_ref, memory).to_nif()?;
                 }
 
                 // Send message to Elixir with VmState + memory_ref
                 let pid = env.pid();
-                let memory_ref = self.memory_ref.clone();
+                let memory_ref = memory_ref.clone();
                 let state = self.state.clone();
 
                 std::thread::spawn(move || {

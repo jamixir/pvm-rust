@@ -22,6 +22,13 @@ impl Registers {
     pub fn from_slice(slice: [u64; 13]) -> Self {
         Self { data: slice }
     }
+
+    pub fn from_vec(vec: Vec<u64>) -> Self {
+        let mut data = [0u64; 13];
+        let len = vec.len().min(13);
+        data[..len].copy_from_slice(&vec[..len]);
+        Self { data }
+    }
 }
 
 impl Decoder<'_> for Registers {

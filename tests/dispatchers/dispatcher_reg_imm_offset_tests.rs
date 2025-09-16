@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn test_unknown_opcode_returns_panic() {
         let program = Program::from_vec(vec![200, 0, 0]); // Invalid opcode
-        let mut bitmask = BitMask::from_bytes(&[0b001], program.len());
+        let bitmask = BitMask::from_bytes(&[0b001], program.len());
         let context = create_test_context(program, bitmask);
         let mut state = create_test_state(0);
 
