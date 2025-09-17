@@ -36,7 +36,7 @@ pub fn dispatch_two_immediates(opcode: u8, vm: &mut Vm) -> InstructionResult {
 
 #[inline(always)]
 fn get_two_immediates_params(vm: &Vm) -> (u64, u64) {
-    let program = vm.context.program.as_slice();
+    let program = &vm.context.program;
     let bitmask = &vm.context.bitmask;
     let pc = vm.state.pc;
 

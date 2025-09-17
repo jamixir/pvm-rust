@@ -55,19 +55,25 @@ impl AsRef<[u8]> for Program {
 impl Index<usize> for Program {
     type Output = u8;
 
+    #[inline(always)]
     fn index(&self, index: usize) -> &Self::Output {
-        &self.as_slice()[index]
+        unsafe { self.program.get_unchecked(index) }
+    }
+}
+
+impl Index<std::ops::Range<usize>> for Program {
+    type Output = [u8];
+
+    #[inline(always)]
+    fn index(&self, range: std::ops::Range<usize>) -> &Self::Output {
+        unsafe { self.program.get_unchecked(range) }
     }
 }
 
 impl Decoder<'_> for Program {
     fn decode(term: Term) -> rustler::NifResult<Self> {
         let list: Vec<u8> = term.decode()?;
-        let size = list.len();
-        Ok(Program {
-            program: list,
-            size,
-        })
+        Ok(Program::from_vec(list))
     }
 }
 
