@@ -81,7 +81,7 @@ impl VmContext {
         match destination {
             0xFFFF0000 => InstructionResult::Halt,
             0 => InstructionResult::Panic,
-            destination if destination > self.start_set.len() << 1 => InstructionResult::Panic,
+            destination if destination > (self.jump_table.len() << 2) => InstructionResult::Panic,
             _ if destination & 0b1 != 0 => InstructionResult::Panic,
             _ => {
                 let jump_to = self.jump_table[(destination >> 1) - 1];
