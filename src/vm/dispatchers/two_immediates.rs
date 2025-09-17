@@ -1,10 +1,6 @@
 use crate::vm::instructions::opcodes::*;
 use crate::vm::utils::decode_and_extend;
-use crate::vm::{InstructionResult, Vm};
-
-const U8_MASK: u64 = 0xFF;
-const U16_MASK: u64 = 0xFFFF;
-const U32_MASK: u64 = 0xFFFF_FFFF;
+use crate::vm::{masks, InstructionResult, Vm};
 
 #[inline(always)]
 pub fn dispatch_two_immediates(opcode: u8, vm: &mut Vm) -> InstructionResult {
@@ -12,17 +8,17 @@ pub fn dispatch_two_immediates(opcode: u8, vm: &mut Vm) -> InstructionResult {
 
     match opcode {
         STORE_IMM_U8 => {
-            let value = v_y & U8_MASK;
+            let value = v_y & masks::U8;
             let data = &[value as u8];
             vm.write_memory(v_x as usize, data)
         }
         STORE_IMM_U16 => {
-            let value = v_y & U16_MASK;
+            let value = v_y & masks::U16;
             let data = &(value as u16).to_le_bytes()[..2];
             vm.write_memory(v_x as usize, data)
         }
         STORE_IMM_U32 => {
-            let value = v_y & U32_MASK;
+            let value = v_y & masks::U32;
             let data = &(value as u32).to_le_bytes()[..4];
             vm.write_memory(v_x as usize, data)
         }

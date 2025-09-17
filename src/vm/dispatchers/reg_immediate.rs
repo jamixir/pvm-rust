@@ -1,10 +1,6 @@
 use crate::vm::instructions::opcodes::*;
 use crate::vm::utils::{decode_and_extend, decode_bytes, extend_to_64bit};
-use crate::vm::{InstructionResult, Vm, VmContext};
-
-const U8_MASK: u64 = 0xFF;
-const U16_MASK: u64 = 0xFFFF;
-const U32_MASK: u64 = 0xFFFF_FFFF;
+use crate::vm::{masks, InstructionResult, Vm, VmContext};
 
 #[inline(always)]
 pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
@@ -22,7 +18,7 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
         }
         JUMP_IND => {
             let register_value = vm.state.registers.get(register_index);
-            let target = ((register_value + addr) & U32_MASK) as usize;
+            let target = ((register_value + addr) & masks::U32) as usize;
             vm.branch(target, true)
         }
         LOAD_IMM => {
@@ -113,19 +109,19 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
         },
         STORE_U8 => {
             let value = vm.state.registers.get(register_index);
-            let stored_value = (value & U8_MASK) as u8;
+            let stored_value = (value & masks::U8) as u8;
             let data = &[stored_value];
             vm.write_memory(addr as usize, data)
         }
         STORE_U16 => {
             let value = vm.state.registers.get(register_index);
-            let stored_value = (value & U16_MASK) as u16;
+            let stored_value = (value & masks::U16) as u16;
             let data = &stored_value.to_le_bytes()[..2];
             vm.write_memory(addr as usize, data)
         }
         STORE_U32 => {
             let value = vm.state.registers.get(register_index);
-            let stored_value = (value & U32_MASK) as u32;
+            let stored_value = (value & masks::U32) as u32;
             let data = &stored_value.to_le_bytes()[..4];
             vm.write_memory(addr as usize, data)
         }
