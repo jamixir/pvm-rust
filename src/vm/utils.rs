@@ -32,12 +32,12 @@ pub fn decode_and_extend(program: &Program, start_index: usize, count: usize) ->
     for i in 0..count {
         x |= (program[start_index + i] as u64) << (8 * i);
     }
-    extend_to_64bit(x, count)
+    sign_extend(x, count)
 }
 
 /// Extend value to 64-bit
 #[inline(always)]
-pub fn extend_to_64bit(x: u64, n: usize) -> u64 {
+pub fn sign_extend(x: u64, n: usize) -> u64 {
     let shift = (64u32.wrapping_sub((n * 8) as u32)) & 63;
     ((x << shift) as i64 >> shift) as u64
 }

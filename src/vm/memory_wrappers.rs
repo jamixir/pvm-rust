@@ -6,16 +6,10 @@ use crate::{
 impl Vm {
     #[inline(always)]
     pub fn read_memory(&self, addr: usize, len: usize) -> Result<&[u8], MemoryError> {
-        match self
-            .memory
+        self.memory
             .as_ref()
             .expect("Memory not available")
             .read(addr, len)
-        {
-            Ok(data) => Ok(data),
-            Err(MemoryError::Fault { page_addr }) => Err(MemoryError::Fault { page_addr }),
-            Err(MemoryError::Panic) => Err(MemoryError::Panic),
-        }
     }
 
     #[inline(always)]
