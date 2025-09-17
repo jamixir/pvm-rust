@@ -19,7 +19,7 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
         JUMP_IND => {
             let (register_index, value) = get_reg_immediate_params(&vm.context, vm.state.pc);
             let register_value = vm.state.registers.get(register_index);
-            let target = ((register_value + value) & masks::U32) as usize;
+            let target = ((register_value.wrapping_add(value)) & masks::U32) as usize;
             vm.context.djump(target)
         }
         LOAD_IMM => {
