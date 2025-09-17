@@ -1,5 +1,5 @@
 use crate::vm::instructions::opcodes::*;
-use crate::vm::utils::{branch, decode_and_extend, decode_bytes, unsigned_to_signed};
+use crate::vm::utils::{decode_and_extend, decode_bytes, unsigned_to_signed};
 use crate::vm::{InstructionResult, Vm, VmContext, VmState};
 
 #[inline(always)]
@@ -8,71 +8,69 @@ pub fn dispatch_reg_immediate_offset(
     context: &VmContext,
     state: &mut VmState,
 ) -> InstructionResult {
-    let start_set = &context.start_set;
-    let (r_a, v_x, v_y) = get_reg_imm_offset_params(context, state);
+    let (r_a, v_x, v_y) = get_reg_imm_offset_params(context, state.pc);
 
     match opcode {
         LOAD_IMM_JUMP => {
             state.registers.set(r_a, v_x);
-            branch(v_y, true, start_set)
+            context.branch(v_y, true)
         }
         BRANCH_EQ_IMM => {
             let w_a = state.registers.get(r_a);
-            branch(v_y, w_a == v_x, start_set)
+            context.branch(v_y, w_a == v_x)
         }
         BRANCH_NE_IMM => {
             let w_a = state.registers.get(r_a);
-            branch(v_y, w_a != v_x, start_set)
+            context.branch(v_y, w_a != v_x)
         }
         BRANCH_LT_U_IMM => {
             let w_a = state.registers.get(r_a);
-            branch(v_y, w_a < v_x, start_set)
+            context.branch(v_y, w_a < v_x)
         }
         BRANCH_LE_U_IMM => {
             let w_a = state.registers.get(r_a);
-            branch(v_y, w_a <= v_x, start_set)
+            context.branch(v_y, w_a <= v_x)
         }
         BRANCH_GE_U_IMM => {
             let w_a = state.registers.get(r_a);
-            branch(v_y, w_a >= v_x, start_set)
+            context.branch(v_y, w_a >= v_x)
         }
         BRANCH_GT_U_IMM => {
             let w_a = state.registers.get(r_a);
-            branch(v_y, w_a > v_x, start_set)
+            context.branch(v_y, w_a > v_x)
         }
         BRANCH_LT_S_IMM => {
             let w_a = state.registers.get(r_a);
             let w_a_signed = unsigned_to_signed(w_a, 8);
             let v_x_signed = unsigned_to_signed(v_x, 8);
-            branch(v_y, w_a_signed < v_x_signed, start_set)
+            context.branch(v_y, w_a_signed < v_x_signed)
         }
         BRANCH_LE_S_IMM => {
             let w_a = state.registers.get(r_a);
             let w_a_signed = unsigned_to_signed(w_a, 8);
             let v_x_signed = unsigned_to_signed(v_x, 8);
-            branch(v_y, w_a_signed <= v_x_signed, start_set)
+            context.branch(v_y, w_a_signed <= v_x_signed)
         }
         BRANCH_GE_S_IMM => {
             let w_a = state.registers.get(r_a);
             let w_a_signed = unsigned_to_signed(w_a, 8);
             let v_x_signed = unsigned_to_signed(v_x, 8);
-            branch(v_y, w_a_signed >= v_x_signed, start_set)
+            context.branch(v_y, w_a_signed >= v_x_signed)
         }
         BRANCH_GT_S_IMM => {
             let w_a = state.registers.get(r_a);
             let w_a_signed = unsigned_to_signed(w_a, 8);
             let v_x_signed = unsigned_to_signed(v_x, 8);
-            branch(v_y, w_a_signed > v_x_signed, start_set)
+            context.branch(v_y, w_a_signed > v_x_signed)
         }
         _ => InstructionResult::Panic,
     }
 }
 
 #[inline(always)]
-fn get_reg_imm_offset_params(context: &VmContext, state: &VmState) -> (usize, u64, usize) {
+fn get_reg_imm_offset_params(context: &VmContext, pc: usize) -> (usize, u64, usize) {
     let program = &context.program;
     let bitmask = &context.bitmask;
-    let pc = state.pc;
 
     let first_byte = program.as_safe_slice()[pc + 1];
 
@@ -85,9 +83,9 @@ fn get_reg_imm_offset_params(context: &VmContext, state: &VmState) -> (usize, u6
     let skip_value = bitmask.skip(pc);
     let l_y = (skip_value.saturating_sub(l_x).saturating_sub(1)).min(4) as usize;
 
-    let v_x = decode_and_extend(program.as_slice(), pc + 2, l_x);
+    let v_x = decode_and_extend(program, pc + 2, l_x);
 
-    let offset_bytes = decode_bytes(program.as_slice(), pc + 2 + l_x, l_y);
+    let offset_bytes = decode_bytes(program, pc + 2 + l_x, l_y);
     let offset_signed = unsigned_to_signed(offset_bytes, l_y);
     let v_y = (pc as i64 + offset_signed) as usize;
 

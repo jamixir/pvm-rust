@@ -67,6 +67,28 @@ pub struct VmContext {
     pub start_set: StartSet,
 }
 
+impl VmContext {
+    #[inline(always)]
+    pub fn next_counter(&self, exit_reason: &InstructionResult, prev_counter: usize) -> usize {
+        match exit_reason {
+            InstructionResult::Continue => prev_counter + 1 + self.bitmask.skip(prev_counter),
+            InstructionResult::Ecall { .. } => prev_counter + 1 + self.bitmask.skip(prev_counter),
+            InstructionResult::Jump(destination) => *destination,
+            InstructionResult::Halt => 0,
+            InstructionResult::Panic => 0,
+            InstructionResult::Fault { .. } => prev_counter,
+        }
+    }
+    #[inline(always)]
+    pub fn branch(&self, destination: usize, should_branch: bool) -> InstructionResult {
+        match (should_branch, self.start_set.includes(destination)) {
+            (true, true) => InstructionResult::Jump(destination),
+            (true, false) => InstructionResult::Panic,
+            (false, _) => InstructionResult::Continue,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ExecutionResult {
     Halt,
