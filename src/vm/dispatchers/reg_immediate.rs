@@ -6,8 +6,6 @@ use crate::vm::{masks, InstructionResult, Vm, VmContext};
 
 #[inline(always)]
 pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
-    let (register_index, value) = get_reg_immediate_params(&vm.context, vm.state.pc);
-
     match opcode {
         LOAD_IMM_64 => {
             let program = &vm.context.program;
@@ -19,102 +17,143 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
             InstructionResult::Continue
         }
         JUMP_IND => {
+            let (register_index, value) = get_reg_immediate_params(&vm.context, vm.state.pc);
             let register_value = vm.state.registers.get(register_index);
             let target = ((register_value + value) & masks::U32) as usize;
             vm.context.djump(target)
         }
         LOAD_IMM => {
+            let (register_index, value) = get_reg_immediate_params(&vm.context, vm.state.pc);
             vm.state.registers.set(register_index, value);
             InstructionResult::Continue
         }
-        LOAD_U8 => match vm.read_memory(value as usize, 1) {
-            Ok(data) => {
-                let value = data[0] as u64;
-                vm.state.registers.set(register_index, value);
-                InstructionResult::Continue
+        LOAD_U8 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 1) {
+                Ok(data) => {
+                    let value = data[0] as u64;
+                    vm.state.registers.set(register_index, value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
-        LOAD_I8 => match vm.read_memory(value as usize, 1) {
-            Ok(data) => {
-                let value = data[0] as u64;
-                let signed_value = sign_extend(value, 1);
-                vm.state.registers.set(register_index, signed_value);
-                InstructionResult::Continue
+        }
+        LOAD_I8 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 1) {
+                Ok(data) => {
+                    let value = data[0] as u64;
+                    let signed_value = sign_extend(value, 1);
+                    vm.state.registers.set(register_index, signed_value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
-        LOAD_U16 => match vm.read_memory(value as usize, 2) {
-            Ok(data) => {
-                let value = decode_le(data, 2);
-                vm.state.registers.set(register_index, value);
-                InstructionResult::Continue
+        }
+        LOAD_U16 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 2) {
+                Ok(data) => {
+                    let value = decode_le(data, 2);
+                    vm.state.registers.set(register_index, value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
-        LOAD_I16 => match vm.read_memory(value as usize, 2) {
-            Ok(data) => {
-                let value = decode_le(data, 2);
-                let signed_value = sign_extend(value, 2);
-                vm.state.registers.set(register_index, signed_value);
-                InstructionResult::Continue
+        }
+        LOAD_I16 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 2) {
+                Ok(data) => {
+                    let value = decode_le(data, 2);
+                    let signed_value = sign_extend(value, 2);
+                    vm.state.registers.set(register_index, signed_value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
-        LOAD_U32 => match vm.read_memory(value as usize, 4) {
-            Ok(data) => {
-                let value = decode_le(data, 4);
-                vm.state.registers.set(register_index, value);
-                InstructionResult::Continue
+        }
+        LOAD_U32 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 4) {
+                Ok(data) => {
+                    let value = decode_le(data, 4);
+                    vm.state.registers.set(register_index, value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
-        LOAD_I32 => match vm.read_memory(value as usize, 4) {
-            Ok(data) => {
-                let value = decode_le(data, 4);
-                let signed_value = sign_extend(value, 4);
-                vm.state.registers.set(register_index, signed_value);
-                InstructionResult::Continue
+        }
+        LOAD_I32 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 4) {
+                Ok(data) => {
+                    let value = decode_le(data, 4);
+                    let signed_value = sign_extend(value, 4);
+                    vm.state.registers.set(register_index, signed_value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
-        LOAD_U64 => match vm.read_memory(value as usize, 8) {
-            Ok(data) => {
-                let value = decode_le(data, 8);
-                vm.state.registers.set(register_index, value);
-                InstructionResult::Continue
+        }
+        LOAD_U64 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
+            match vm.read_memory(address as usize, 8) {
+                Ok(data) => {
+                    let value = decode_le(data, 8);
+                    vm.state.registers.set(register_index, value);
+                    InstructionResult::Continue
+                }
+                Err(MemoryError::Fault { page_addr }) => {
+                    InstructionResult::Fault { page: page_addr }
+                }
+                Err(MemoryError::Panic) => InstructionResult::Panic,
             }
-            Err(MemoryError::Fault { page_addr }) => InstructionResult::Fault { page: page_addr },
-            Err(MemoryError::Panic) => InstructionResult::Panic,
-        },
+        }
         STORE_U8 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             let value = vm.state.registers.get(register_index);
             let stored_value = (value & masks::U8) as u8;
             let data = &[stored_value];
-            vm.write_memory(value as usize, data)
+            vm.write_memory(address as usize, data)
         }
         STORE_U16 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             let value = vm.state.registers.get(register_index);
             let stored_value = (value & masks::U16) as u16;
             let data = &stored_value.to_le_bytes()[..2];
-            vm.write_memory(value as usize, data)
+            vm.write_memory(address as usize, data)
         }
         STORE_U32 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             let value = vm.state.registers.get(register_index);
             let stored_value = (value & masks::U32) as u32;
             let data = &stored_value.to_le_bytes()[..4];
-            vm.write_memory(value as usize, data)
+            vm.write_memory(address as usize, data)
         }
         STORE_U64 => {
+            let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             let value = vm.state.registers.get(register_index);
             let data = &value.to_le_bytes()[..8];
-            vm.write_memory(value as usize, data)
+            vm.write_memory(address as usize, data)
         }
         _ => InstructionResult::Panic,
     }
