@@ -7,6 +7,7 @@ impl Vm {
         match get_category(opcode) {
             InstructionCategory::NoArgs => self.dispatch_no_args(opcode),
             InstructionCategory::OneImmediate => self.dispatch_one_immediate(opcode),
+            InstructionCategory::TwoImmediates => self.dispatch_two_immediates(opcode),
             InstructionCategory::RegImmediateOffset => self.dispatch_reg_immediate_offset(opcode),
 
             InstructionCategory::Unknown => InstructionResult::Panic,
