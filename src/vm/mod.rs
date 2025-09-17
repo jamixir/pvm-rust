@@ -3,6 +3,7 @@ pub mod execute_instruction;
 pub mod instructions;
 pub mod memory_wrappers;
 pub mod single_step;
+pub mod test_utils;
 pub mod types;
 pub mod utils;
 pub mod vm;
