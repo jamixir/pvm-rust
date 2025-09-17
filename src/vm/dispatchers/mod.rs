@@ -3,6 +3,7 @@ pub mod one_immediate;
 pub mod reg_imm_offset;
 pub mod reg_immediate;
 pub mod reg_two_imm;
+pub mod three_registers;
 pub mod two_immediates;
 
 pub mod masks {

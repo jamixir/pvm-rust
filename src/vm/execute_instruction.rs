@@ -11,6 +11,7 @@ impl Vm {
             InstructionCategory::RegImmediate => self.dispatch_reg_immediate(opcode),
             InstructionCategory::RegImmediateOffset => self.dispatch_reg_immediate_offset(opcode),
             InstructionCategory::RegTwoImm => self.dispatch_reg_two_imm(opcode),
+            InstructionCategory::ThreeRegisters => self.dispatch_three_registers(opcode),
 
             InstructionCategory::Unknown => InstructionResult::Panic,
 
