@@ -15,9 +15,6 @@ impl Registers {
     pub fn set(&mut self, index: usize, value: u64) {
         self.data[index] = value;
     }
-    pub fn to_slice(&self) -> [u64; 13] {
-        self.data
-    }
 
     pub fn from_slice(slice: [u64; 13]) -> Self {
         Self { data: slice }

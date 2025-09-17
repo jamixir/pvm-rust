@@ -16,10 +16,6 @@ impl StartSet {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.set.len()
-    }
-
     pub fn build(program: &Program, bitmask: &BitMask) -> Self {
         let num_words = (program.len() + 63) / 64;
         let mut start_set = Self::new(num_words);

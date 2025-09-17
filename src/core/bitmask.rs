@@ -9,11 +9,6 @@ impl BitMask {
         (index >> 6, index & 63)
     }
 
-    pub fn from_vec(bits: Vec<u64>) -> Self {
-        let limit = bits.len();
-        Self { bits, limit }
-    }
-
     pub fn from_bytes(bytes: &[u8], program_length: usize) -> Self {
         let mut words: Vec<u64> = bytes
             .chunks_exact(8)
@@ -50,10 +45,6 @@ impl BitMask {
 
     pub fn program_limit(&self) -> usize {
         self.limit
-    }
-
-    pub fn set_limit(&mut self, limit: usize) {
-        self.limit = limit;
     }
 
     #[inline(always)]
