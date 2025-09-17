@@ -79,15 +79,10 @@ fn determine_l_and_a_l(byte0: u8) -> (usize, u8) {
 }
 
 #[inline(always)]
-fn u64_from_le_bytes(data: &[u8]) -> u64 {
-    let mut buf = [0u8; 8];
-    buf[..8].copy_from_slice(&data[..8]);
-    u64::from_le_bytes(buf)
-}
-
-#[inline(always)]
 pub fn decode_le(bin: &[u8], l: usize) -> u64 {
-    u64_from_le_bytes(&bin[0..l])
+    let mut buf = [0u8; 8];
+    buf[..l].copy_from_slice(&bin[..l]);
+    u64::from_le_bytes(buf)
 }
 
 #[inline(always)]
