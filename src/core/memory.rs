@@ -109,6 +109,10 @@ impl Memory {
 
     #[inline(always)]
     pub fn check_access(&self, addr: usize, len: usize, required_permission: Permission) -> bool {
+        if addr + len > self.mmap.len() {
+            return false;
+        }
+
         let page_start = addr / PAGE_SIZE;
         let page_end: usize = (addr + len + PAGE_SIZE - 1) / PAGE_SIZE;
         let required_bits = required_permission as u64;

@@ -49,11 +49,7 @@ pub fn decode_bytes(program: &Program, start_index: usize, count: usize) -> u64 
     u64::from_le_bytes(buf)
 }
 
+#[inline(always)]
 pub fn unsigned_to_signed(x: u64, num_bytes: usize) -> i64 {
-    let threshold = 1u64 << (8 * num_bytes - 1);
-    if x < threshold {
-        x as i64
-    } else {
-        x as i64 - (1i64 << (8 * num_bytes))
-    }
+    sign_extend(x, num_bytes) as i64
 }

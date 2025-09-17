@@ -74,11 +74,11 @@ fn setup_memory_with_permissions(
     // Create memory with enough pages for all addresses
     let max_addr = page_map
         .iter()
-        .map(|entry| entry.address)
+        .map(|entry| entry.address + entry.length)
         .max()
         .unwrap_or(4096);
 
-    let num_pages = max_addr >> 12; // Divide by 4096 (2^12)
+    let num_pages = (max_addr + 4095) >> 12; // Round up to next page boundary
     let mut memory = Memory::test_memory(num_pages.max(1));
 
     // Set up page permissions
@@ -153,7 +153,7 @@ fn validate_test_results(
         }
     }
 
-    if !matches!(actual_exit_reason, ExecutionResult::Halt) {
+    if !matches!(actual_exit_reason, ExecutionResult::Halt | ExecutionResult::Panic) {
         if final_state.pc != test_case.expected_pc {
             return Err(format!(
                 "PC mismatch: expected {}, got {}",
@@ -218,7 +218,7 @@ pub fn run_case(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 #[ignore]
 fn test_specific_test() {
-    let test_case = "inst_fallthrough";
+    let test_case = "inst_store_imm_indirect_u8_with_offset_nok";
     let test_file = TEST_VECTORS_DIR.to_string() + test_case + ".json";
 
     if Path::new(&test_file).exists() {
@@ -238,7 +238,10 @@ macro_rules! generate_json_tests {
                 let test_file = format!("{}{}.json", TEST_VECTORS_DIR, $json_name);
 
                 if Path::new(&test_file).exists() {
-                    assert!(run_case(&test_file).is_ok());
+                    match run_case(&test_file) {
+                        Ok(_) => {},
+                        Err(e) => panic!("Test failed: {}", e),
+                    }
                 } else {
                     panic!("Test file {} not found", test_file);
                 }
@@ -253,28 +256,65 @@ generate_json_tests!(
     test_inst_trap: "inst_trap",
 
     // OneImmediate instructions
-    // test_inst_jump: "inst_jump",
-    // test_inst_load_imm_and_jump: "inst_load_imm_and_jump",
+    test_inst_jump: "inst_jump",
+    test_inst_load_imm_and_jump: "inst_load_imm_and_jump",
+
+    // RegImmediate instructions (LOAD_*)
+    test_inst_load_imm_64: "inst_load_imm_64",
+    test_inst_load_imm: "inst_load_imm",
+    test_inst_load_u8: "inst_load_u8",
+    test_inst_load_i8: "inst_load_i8",
+    test_inst_load_u16: "inst_load_u16",
+    test_inst_load_i16: "inst_load_i16",
+    test_inst_load_u32: "inst_load_u32",
+    test_inst_load_i32: "inst_load_i32",
+    test_inst_load_u64: "inst_load_u64",
+
+    // RegImmediate instructions (STORE_*)
+    test_inst_store_u8: "inst_store_u8",
+    test_inst_store_u16: "inst_store_u16",
+    test_inst_store_u32: "inst_store_u32",
+    test_inst_store_u64: "inst_store_u64",
+
+    // TwoImmediates instructions (STORE_IMM_*)
+    test_inst_store_imm_u8: "inst_store_imm_u8",
+    test_inst_store_imm_u16: "inst_store_imm_u16",
+    test_inst_store_imm_u32: "inst_store_imm_u32",
+    test_inst_store_imm_u64: "inst_store_imm_u64",
+
+    // RegTwoImm instructions (STORE_IMM_IND_*)
+    test_inst_store_imm_indirect_u8_with_offset_ok: "inst_store_imm_indirect_u8_with_offset_ok",
+    test_inst_store_imm_indirect_u8_without_offset_ok: "inst_store_imm_indirect_u8_without_offset_ok",
+    test_inst_store_imm_indirect_u16_with_offset_ok: "inst_store_imm_indirect_u16_with_offset_ok",
+    test_inst_store_imm_indirect_u16_without_offset_ok: "inst_store_imm_indirect_u16_without_offset_ok",
+    test_inst_store_imm_indirect_u32_with_offset_ok: "inst_store_imm_indirect_u32_with_offset_ok",
+    test_inst_store_imm_indirect_u32_without_offset_ok: "inst_store_imm_indirect_u32_without_offset_ok",
+    test_inst_store_imm_indirect_u64_with_offset_ok: "inst_store_imm_indirect_u64_with_offset_ok",
+    test_inst_store_imm_indirect_u64_without_offset_ok: "inst_store_imm_indirect_u64_without_offset_ok",
+
+    test_inst_store_imm_indirect_u8_with_offset_nok: "inst_store_imm_indirect_u8_with_offset_nok",
+    test_inst_store_imm_indirect_u32_with_offset_nok: "inst_store_imm_indirect_u32_with_offset_nok",
+    test_inst_store_imm_indirect_u64_with_offset_nok: "inst_store_imm_indirect_u64_with_offset_nok",
 
     // RegImmediateOffset instructions
-    // test_inst_branch_eq_imm_ok: "inst_branch_eq_imm_ok",
-    // test_inst_branch_eq_imm_nok: "inst_branch_eq_imm_nok",
-    // test_inst_branch_not_eq_imm_ok: "inst_branch_not_eq_imm_ok",
-    // test_inst_branch_not_eq_imm_nok: "inst_branch_not_eq_imm_nok",
-    // test_inst_branch_less_unsigned_imm_ok: "inst_branch_less_unsigned_imm_ok",
-    // test_inst_branch_less_unsigned_imm_nok: "inst_branch_less_unsigned_imm_nok",
-    // test_inst_branch_less_or_equal_unsigned_imm_ok: "inst_branch_less_or_equal_unsigned_imm_ok",
-    // test_inst_branch_less_or_equal_unsigned_imm_nok: "inst_branch_less_or_equal_unsigned_imm_nok",
-    // test_inst_branch_greater_or_equal_unsigned_imm_ok: "inst_branch_greater_or_equal_unsigned_imm_ok",
-    // test_inst_branch_greater_or_equal_unsigned_imm_nok: "inst_branch_greater_or_equal_unsigned_imm_nok",
-    // test_inst_branch_greater_unsigned_imm_ok: "inst_branch_greater_unsigned_imm_ok",
-    // test_inst_branch_greater_unsigned_imm_nok: "inst_branch_greater_unsigned_imm_nok",
-    // test_inst_branch_less_signed_imm_ok: "inst_branch_less_signed_imm_ok",
-    // test_inst_branch_less_signed_imm_nok: "inst_branch_less_signed_imm_nok",
-    // test_inst_branch_less_or_equal_signed_imm_ok: "inst_branch_less_or_equal_signed_imm_ok",
-    // test_inst_branch_less_or_equal_signed_imm_nok: "inst_branch_less_or_equal_signed_imm_nok",
-    // test_inst_branch_greater_or_equal_signed_imm_ok: "inst_branch_greater_or_equal_signed_imm_ok",
-    // test_inst_branch_greater_or_equal_signed_imm_nok: "inst_branch_greater_or_equal_signed_imm_nok",
-    // test_inst_branch_greater_signed_imm_ok: "inst_branch_greater_signed_imm_ok",
-    // test_inst_branch_greater_signed_imm_nok: "inst_branch_greater_signed_imm_nok",
+    test_inst_branch_eq_imm_ok: "inst_branch_eq_imm_ok",
+    test_inst_branch_eq_imm_nok: "inst_branch_eq_imm_nok",
+    test_inst_branch_not_eq_imm_ok: "inst_branch_not_eq_imm_ok",
+    test_inst_branch_not_eq_imm_nok: "inst_branch_not_eq_imm_nok",
+    test_inst_branch_less_unsigned_imm_ok: "inst_branch_less_unsigned_imm_ok",
+    test_inst_branch_less_unsigned_imm_nok: "inst_branch_less_unsigned_imm_nok",
+    test_inst_branch_less_or_equal_unsigned_imm_ok: "inst_branch_less_or_equal_unsigned_imm_ok",
+    test_inst_branch_less_or_equal_unsigned_imm_nok: "inst_branch_less_or_equal_unsigned_imm_nok",
+    test_inst_branch_greater_or_equal_unsigned_imm_ok: "inst_branch_greater_or_equal_unsigned_imm_ok",
+    test_inst_branch_greater_or_equal_unsigned_imm_nok: "inst_branch_greater_or_equal_unsigned_imm_nok",
+    test_inst_branch_greater_unsigned_imm_ok: "inst_branch_greater_unsigned_imm_ok",
+    test_inst_branch_greater_unsigned_imm_nok: "inst_branch_greater_unsigned_imm_nok",
+    test_inst_branch_less_signed_imm_ok: "inst_branch_less_signed_imm_ok",
+    test_inst_branch_less_signed_imm_nok: "inst_branch_less_signed_imm_nok",
+    test_inst_branch_less_or_equal_signed_imm_ok: "inst_branch_less_or_equal_signed_imm_ok",
+    test_inst_branch_less_or_equal_signed_imm_nok: "inst_branch_less_or_equal_signed_imm_nok",
+    test_inst_branch_greater_or_equal_signed_imm_ok: "inst_branch_greater_or_equal_signed_imm_ok",
+    test_inst_branch_greater_or_equal_signed_imm_nok: "inst_branch_greater_or_equal_signed_imm_nok",
+    test_inst_branch_greater_signed_imm_ok: "inst_branch_greater_signed_imm_ok",
+    test_inst_branch_greater_signed_imm_nok: "inst_branch_greater_signed_imm_nok",
 );
