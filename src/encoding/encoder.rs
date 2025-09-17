@@ -1,4 +1,9 @@
-pub fn encode_program(program: &[u8], bitmask_bytes: &[u8], jump_table: &[u64], z: u64) -> Vec<u8> {
+pub fn encode_program(
+    program: &[u8],
+    bitmask_bytes: &[u8],
+    jump_table: &[usize],
+    z: u64,
+) -> Vec<u8> {
     // Preallocate output buffer roughly
     let mut encoded = Vec::with_capacity(
         16 + program.len() + bitmask_bytes.len() + jump_table.len() * z as usize,
@@ -11,7 +16,7 @@ pub fn encode_program(program: &[u8], bitmask_bytes: &[u8], jump_table: &[u64], 
     encode_integer(program.len() as u64, &mut encoded);
 
     for &entry in jump_table {
-        let le_bytes = encode_le(entry, z as usize);
+        let le_bytes = encode_le(entry as u64, z as usize);
         encoded.extend_from_slice(&le_bytes[..z as usize]);
     }
 

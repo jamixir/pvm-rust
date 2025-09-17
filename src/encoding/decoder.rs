@@ -3,7 +3,7 @@ use crate::core::{BitMask, Program};
 pub struct Deblob {
     pub program: Program,
     pub bitmask: BitMask,
-    pub jump_table: Vec<u64>,
+    pub jump_table: Vec<usize>,
 }
 
 pub fn deblob(bin: &[u8]) -> Deblob {
@@ -79,10 +79,15 @@ fn determine_l_and_a_l(byte0: u8) -> (usize, u8) {
 }
 
 #[inline(always)]
-fn decode_le(bin: &[u8], l: usize) -> u64 {
+fn u64_from_le_bytes(data: &[u8]) -> u64 {
     let mut buf = [0u8; 8];
-    buf[..l].copy_from_slice(&bin[0..l]);
+    buf[..8].copy_from_slice(&data[..8]);
     u64::from_le_bytes(buf)
+}
+
+#[inline(always)]
+pub fn decode_le(bin: &[u8], l: usize) -> u64 {
+    u64_from_le_bytes(&bin[0..l])
 }
 
 #[inline(always)]
@@ -93,17 +98,17 @@ fn decode_next_le(bin: &[u8], l: usize) -> (u64, &[u8]) {
     (value, &bin[l..])
 }
 
-fn decode_jump_table(mut bin: &[u8], size: usize, z: u64) -> (Vec<u64>, &[u8]) {
+fn decode_jump_table(mut bin: &[u8], size: usize, z: u64) -> (Vec<usize>, &[u8]) {
     if size == 0 {
         return (Vec::new(), bin);
     }
 
-    let mut values = Vec::with_capacity(size);
+    let mut values: Vec<usize> = Vec::with_capacity(size);
     let z_size = z as usize;
 
     for _ in 0..size {
         let (value, rest) = decode_next_le(bin, z_size);
-        values.push(value);
+        values.push(value as usize);
         bin = rest;
     }
 

@@ -113,7 +113,7 @@ fn run_test_case(
         setup_memory_with_permissions(&test_case.initial_page_map, &test_case.initial_memory)?;
 
     let deblob_result = deblob(&test_case.program);
-    let start_set = StartSet::build(&deblob_result.program.as_slice(), &deblob_result.bitmask);
+    let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
     let context = Arc::new(VmContext {
         program: deblob_result.program,

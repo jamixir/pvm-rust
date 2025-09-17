@@ -7,7 +7,7 @@ mod tests {
     use std::sync::Arc;
 
     fn create_test_vm(program: Program, bitmask: BitMask, pc: usize) -> Vm {
-        let start_set = StartSet::build(program.as_slice(), &bitmask);
+        let start_set = StartSet::build(&program, &bitmask);
         let context = Arc::new(VmContext {
             program,
             bitmask,

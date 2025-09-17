@@ -1,8 +1,8 @@
-use crate::{core::consts::TERMINATION_INSTRUCTIONS, core::BitMask};
+use crate::core::{consts::TERMINATION_INSTRUCTIONS, BitMask, Program};
 
 #[derive(Debug)]
 pub struct StartSet {
-    pub set: Vec<u64>,
+    set: Vec<u64>,
 }
 
 impl StartSet {
@@ -16,7 +16,11 @@ impl StartSet {
         }
     }
 
-    pub fn build(program: &[u8], bitmask: &BitMask) -> Self {
+    pub fn len(&self) -> usize {
+        self.set.len()
+    }
+
+    pub fn build(program: &Program, bitmask: &BitMask) -> Self {
         let num_words = (program.len() + 63) / 64;
         let mut start_set = Self::new(num_words);
         start_set.add(0);

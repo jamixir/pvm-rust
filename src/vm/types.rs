@@ -63,7 +63,7 @@ impl VmState {
 pub struct VmContext {
     pub program: Program,
     pub bitmask: BitMask,
-    pub jump_table: Vec<u64>,
+    pub jump_table: Vec<usize>,
     pub start_set: StartSet,
 }
 
@@ -74,6 +74,23 @@ impl VmContext {
             (true, true) => InstructionResult::Jump(destination),
             (true, false) => InstructionResult::Panic,
             (false, _) => InstructionResult::Continue,
+        }
+    }
+
+    pub fn djump(&self, destination: usize) -> InstructionResult {
+        match destination {
+            0xFFFF0000 => InstructionResult::Halt,
+            0 => InstructionResult::Panic,
+            destination if destination > self.start_set.len() << 1 => InstructionResult::Panic,
+            _ if destination & 0b1 != 0 => InstructionResult::Panic,
+            _ => {
+                let jump_to = self.jump_table[(destination >> 1) - 1];
+                if self.start_set.includes(jump_to) {
+                    InstructionResult::Jump(jump_to)
+                } else {
+                    InstructionResult::Panic
+                }
+            }
         }
     }
 }

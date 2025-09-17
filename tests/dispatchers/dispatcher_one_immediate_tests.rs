@@ -6,7 +6,7 @@ mod tests {
     use pvm::vm::{InstructionResult, VmContext, VmState};
 
     fn create_test_context(program: Program, bitmask: BitMask) -> VmContext {
-        let start_set = StartSet::build(program.as_slice(), &bitmask);
+        let start_set = StartSet::build(&program, &bitmask);
         VmContext {
             program,
             bitmask,

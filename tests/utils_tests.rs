@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pvm::core::{BitMask, StartSet};
+    use pvm::core::{BitMask, Program, StartSet};
 
     #[test]
     fn test_skip_basic_patterns() {
@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn test_build_start_set_simple_program() {
         // Program: [trap, fallthrough, store_imm_u8, imm1, imm2]
-        let program = vec![0x00, 0x01, 0x3E, 0x01, 0x05];
+        let program = Program::from_vec(vec![0x00, 0x01, 0x3E, 0x01, 0x05]);
         // Bitmask with instructions at positions 0, 1, 2 (bits 0, 1, 2 set = 0b00000111 = 7)
         let bitmask = BitMask::from_bytes(&[7], program.len()); // 0b00000111
 
@@ -71,8 +71,8 @@ mod tests {
     #[test]
     fn test_build_start_set_with_jumps_and_branches() {
         // Program: [jump, imm1, imm2, branch_eq, imm1, imm2]
-        let program = vec![0x28, 0x01, 0x05, 0xAA, 0x01, 0x0A]; // 0x28=40=jump, 0xAA=170=branch_eq
-                                                                // Instructions at positions 0 and 3 (bits 0 and 3 set = 0b00001001 = 9)
+        let program = Program::from_vec(vec![0x28, 0x01, 0x05, 0xAA, 0x01, 0x0A]); // 0x28=40=jump, 0xAA=170=branch_eq
+                                                                                   // Instructions at positions 0 and 3 (bits 0 and 3 set = 0b00001001 = 9)
         let bitmask = BitMask::from_bytes(&[9], program.len()); // 0b00001001
 
         let starts = StartSet::build(&program, &bitmask);
@@ -90,7 +90,7 @@ mod tests {
     #[test]
     fn test_build_start_set_no_termination_instructions() {
         // Program with only non-termination instruction: store_imm_u8
-        let program = vec![0x3E, 0x01, 0x05];
+        let program = Program::from_vec(vec![0x3E, 0x01, 0x05]);
         let bitmask = BitMask::from_bytes(&[1], program.len()); // Only bit 0 set = 0b1
 
         let starts = StartSet::build(&program, &bitmask);
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn test_build_start_set_multiple_termination_instructions() {
         // Program: [fallthrough, trap, jump, imm1, imm2]
-        let program = vec![0x01, 0x00, 0x28, 0x01, 0x05]; // fallthrough, trap, jump
+        let program = Program::from_vec(vec![0x01, 0x00, 0x28, 0x01, 0x05]); // fallthrough, trap, jump
         let bitmask = BitMask::from_bytes(&[7], program.len()); // Bits 0, 1, 2 set = 0b00000111 = 7
 
         let starts = StartSet::build(&program, &bitmask);

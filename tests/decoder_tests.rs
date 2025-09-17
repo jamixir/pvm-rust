@@ -8,9 +8,9 @@ mod tests {
     fn encode_decode(
         program: &[u8],
         bitmask: &[u8],
-        jump_table: &[u64],
+        jump_table: &[usize],
         z: u64,
-    ) -> (Program, BitMask, Vec<u64>) {
+    ) -> (Program, BitMask, Vec<usize>) {
         let encoded = encode_program(program, bitmask, jump_table, z);
         let blob = deblob(&encoded);
         (blob.program, blob.bitmask, blob.jump_table)
@@ -20,7 +20,7 @@ mod tests {
     fn test_empty_jump_table() {
         let program = &[60, 171, 142, 73, 61, 2, 3];
         let bitmask = &[137];
-        let jump_table: &[u64] = &[];
+        let jump_table: &[usize] = &[];
         let z = 1;
 
         let (decoded_program, decoded_bitmask, decoded_jump_table) =
@@ -35,7 +35,7 @@ mod tests {
     fn test_jump_table() {
         let program = &[1, 2, 3, 4];
         let bitmask = &[0xFF];
-        let jump_table: &[u64] = &[10, 20, 30];
+        let jump_table: &[usize] = &[10, 20, 30];
         let z = 1;
 
         let (decoded_program, decoded_bitmask, decoded_jump_table) =
@@ -50,7 +50,7 @@ mod tests {
     fn test_larger_z() {
         let program = &[1, 2, 3, 4];
         let bitmask = &[0xFF];
-        let jump_table: &[u64] = &[256, 512, 1024]; // requires 2 bytes each
+        let jump_table: &[usize] = &[256, 512, 1024]; // requires 2 bytes each
         let z = 2;
 
         let (decoded_program, _decoded_bitmask, decoded_jump_table) =
@@ -64,7 +64,7 @@ mod tests {
     fn test_max_jump_and_program() {
         let program = &[1u8; 100];
         let bitmask = &[0xAA, 0x55];
-        let jump_table: &[u64] = &[0, 1, 2, 255, 1024];
+        let jump_table: &[usize] = &[0, 1, 2, 255, 1024];
         let z = 2;
 
         let (decoded_program, decoded_bitmask, decoded_jump_table) =
@@ -79,7 +79,7 @@ mod tests {
     fn test_trap_bit_set() {
         let program = &[0x01, 0x02, 0x03];
         let bitmask = &[0b10100000]; // 1 byte
-        let jump_table: &[u64] = &[];
+        let jump_table: &[usize] = &[];
         let z = 1;
 
         let (_decoded_program, decoded_bitmask, _decoded_jump_table) =
