@@ -16,14 +16,6 @@ impl Vm {
             InstructionResult::Fault { .. } => prev_counter,
         }
     }
-
-    pub fn branch(&self, destination: usize, should_branch: bool) -> InstructionResult {
-        match (should_branch, self.context.start_set.includes(destination)) {
-            (true, true) => InstructionResult::Jump(destination),
-            (true, false) => InstructionResult::Panic,
-            (false, _) => InstructionResult::Continue,
-        }
-    }
 }
 
 #[inline(always)]

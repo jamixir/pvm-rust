@@ -11,7 +11,7 @@ use rustler::{Binary, NifResult, NifTuple, Resource, ResourceArc};
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Permission {
-    _None = 0b00,
+    None = 0b00,
     Read = 0b01,
     ReadWrite = 0b11,
 }
@@ -85,7 +85,7 @@ impl Memory {
         if self.check_access(addr, len, Permission::Read) {
             Ok(&self.mmap[addr..addr + len])
         } else {
-            let page_addr = (addr / PAGE_SIZE) * PAGE_SIZE;
+            let page_addr = addr & !(PAGE_SIZE - 1);
             Err(MemoryError::Fault { page_addr })
         }
     }
@@ -102,7 +102,7 @@ impl Memory {
             self.mmap[addr..addr + data.len()].copy_from_slice(data);
             Ok(())
         } else {
-            let page_addr = (addr / PAGE_SIZE) * PAGE_SIZE;
+            let page_addr = addr & !(PAGE_SIZE - 1);
             Err(MemoryError::Fault { page_addr })
         }
     }

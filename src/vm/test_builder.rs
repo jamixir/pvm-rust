@@ -34,16 +34,6 @@ impl VmTestBuilder {
         self
     }
 
-    pub fn with_pc(mut self, pc: usize) -> Self {
-        self.pc = pc;
-        self
-    }
-
-    pub fn with_gas(mut self, gas: u64) -> Self {
-        self.gas = gas;
-        self
-    }
-
     pub fn with_jump_table(mut self, jump_table: Vec<usize>) -> Self {
         self.jump_table = jump_table;
         self

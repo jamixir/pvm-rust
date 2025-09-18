@@ -28,7 +28,7 @@ pub fn deblob(bin: &[u8]) -> Deblob {
 #[inline(always)]
 fn decode_next_integer(bin: &[u8]) -> (u64, &[u8]) {
     if bin.is_empty() {
-        panic!("decode_next_integer: empty input");
+        return (0, bin);
     }
 
     match bin[0] {

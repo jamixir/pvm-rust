@@ -231,9 +231,9 @@ mod tests {
 
         #[test]
         fn test_load_u8_page_fault() {
-            let mut memory = Memory::test_memory(100);
+            let mut memory = Memory::test_memory(32);
             // Set page 1 (address 0x10000-0x10FFF) to no permissions
-            memory.set_access(0x10000, 1024, Permission::_None);
+            memory.set_access(0x10000, 1024, Permission::None);
 
             // Test address 0x10500 (middle of page 1)
             let mut vm = VmTestBuilder::new(vec![LOAD_U8, 0x01, 0x00, 0x05, 0x01, 0x00], &[0b1])
@@ -247,38 +247,38 @@ mod tests {
 
         #[test]
         fn test_load_i8_page_fault() {
-            let mut memory = Memory::test_memory(100);
-            memory.set_access(0x20000, 1, Permission::_None);
+            let mut memory = Memory::test_memory(32);
+            memory.set_access(0x15000, 1, Permission::None);
 
-            // Test address 0x20750 (random within page 2)
-            let mut vm = VmTestBuilder::new(vec![LOAD_I8, 0x01, 0x50, 0x07, 0x02, 0x00], &[0b1])
+            // Test address 0x15750 (random within page 2)
+            let mut vm = VmTestBuilder::new(vec![LOAD_I8, 0x01, 0x50, 0x57, 0x01, 0x00], &[0b1])
                 .with_memory(memory)
                 .build();
 
             let result = dispatch_reg_immediate(LOAD_I8, &mut vm);
 
-            assert_eq!(result, InstructionResult::Fault { page: 0x20000 });
+            assert_eq!(result, InstructionResult::Fault { page: 0x15000 });
         }
 
         #[test]
         fn test_load_u16_page_fault() {
-            let mut memory = Memory::test_memory(100);
-            memory.set_access(0x30000, PAGE_SIZE, Permission::_None);
+            let mut memory = Memory::test_memory(32);
+            memory.set_access(0x1F000, PAGE_SIZE, Permission::None);
 
-            // Test address 0x30ABC (random within page 3)
-            let mut vm = VmTestBuilder::new(vec![LOAD_U16, 0x01, 0xBC, 0x0A, 0x03, 0x00], &[0b1])
+            // Test address 0x1FABC (random within page 3)
+            let mut vm = VmTestBuilder::new(vec![LOAD_U16, 0x02, 0xBC, 0xFA, 0x01, 0x00], &[0b1])
                 .with_memory(memory)
                 .build();
 
             let result = dispatch_reg_immediate(LOAD_U16, &mut vm);
 
-            assert_eq!(result, InstructionResult::Fault { page: 0x30000 });
+            assert_eq!(result, InstructionResult::Fault { page: 0x1F000 });
         }
 
         #[test]
         fn test_load_i16_page_fault() {
-            let mut memory = Memory::test_memory(100);
-            memory.set_access(0x40000, 32, Permission::_None);
+            let mut memory = Memory::test_memory(32);
+            memory.set_access(0x16000, 32, Permission::None);
 
             // Test address 0x40DEF (random within page 4)
             let mut vm = VmTestBuilder::new(vec![LOAD_I16, 0x01, 0xEF, 0x0D, 0x04, 0x00], &[0b1])
@@ -292,27 +292,27 @@ mod tests {
 
         #[test]
         fn test_load_u32_page_fault() {
-            let mut memory = Memory::test_memory(100);
-            memory.set_access(0x50000, 1, Permission::_None);
+            let mut memory = Memory::test_memory(32);
+            memory.set_access(0x17000, 1, Permission::None);
 
-            // Test address 0x50123 (random within page 5)
-            let mut vm = VmTestBuilder::new(vec![LOAD_U32, 0x01, 0x23, 0x01, 0x05, 0x00], &[0b1])
+            // Test address 0x17123 (random within page 5)
+            let mut vm = VmTestBuilder::new(vec![LOAD_U32, 0x01, 0x23, 0x71, 0x01, 0x00], &[0b1])
                 .with_memory(memory)
                 .build();
 
             let result = dispatch_reg_immediate(LOAD_U32, &mut vm);
 
-            assert_eq!(result, InstructionResult::Fault { page: 0x50000 });
+            assert_eq!(result, InstructionResult::Fault { page: 0x17000 });
         }
 
         #[test]
         fn test_load_i32_page_fault() {
-            let mut memory = Memory::test_memory(100);
+            let mut memory = Memory::test_memory(32);
             // length 0 should keep the page accessible
-            memory.set_access(0x60000, 0, Permission::_None);
+            memory.set_access(0x18000, 0, Permission::None);
 
-            // Test address 0x60FED (random within page 6)
-            let mut vm = VmTestBuilder::new(vec![LOAD_I32, 0x01, 0xED, 0x0F, 0x06, 0x00], &[0b1])
+            // Test address 0x18FED (random within page 6)
+            let mut vm = VmTestBuilder::new(vec![LOAD_I32, 0x01, 0xED, 0x8F, 0x01, 0x00], &[0b1])
                 .with_memory(memory)
                 .build();
 
@@ -323,17 +323,17 @@ mod tests {
 
         #[test]
         fn test_load_u64_page_fault() {
-            let mut memory = Memory::test_memory(100);
-            memory.set_access(0x70000, 1, Permission::_None);
+            let mut memory = Memory::test_memory(32);
+            memory.set_access(0x10000, 1, Permission::None);
+            // Test address 0x10FFF(random within page 6)
 
-            // Test address 0x70BEE (random within page 7)
-            let mut vm = VmTestBuilder::new(vec![LOAD_U64, 0x01, 0xEE, 0x0B, 0x07, 0x00], &[0b1])
+            let mut vm = VmTestBuilder::new(vec![LOAD_U64, 0x01, 0xFF, 0x0F, 0x01, 0x00], &[0b1])
                 .with_memory(memory)
                 .build();
 
             let result = dispatch_reg_immediate(LOAD_U64, &mut vm);
 
-            assert_eq!(result, InstructionResult::Fault { page: 0x70000 });
+            assert_eq!(result, InstructionResult::Fault { page: 0x10000 });
         }
 
         #[test]
