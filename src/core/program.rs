@@ -37,10 +37,6 @@ impl Program {
         self.size
     }
 
-    pub fn as_safe_slice(&self) -> &[u8] {
-        &self.program
-    }
-
     pub fn as_slice(&self) -> &[u8] {
         &self.program[..self.size]
     }
