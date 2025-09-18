@@ -244,7 +244,7 @@ pub fn dispatch_three_registers(opcode: u8, vm: &mut Vm) -> InstructionResult {
         ROT_L_32 => {
             let val32 = (w_a & masks::U32) as u32;
             let shift = (w_b & 31) as u32;
-            let result = val32.rotate_left(shift) as u64;
+            let result = sign_extend(val32.rotate_left(shift) as u64, 4);
             vm.state.registers.set(r_d, result);
             InstructionResult::Continue
         }
@@ -256,7 +256,7 @@ pub fn dispatch_three_registers(opcode: u8, vm: &mut Vm) -> InstructionResult {
         ROT_R_32 => {
             let val32 = (w_a & masks::U32) as u32;
             let shift = (w_b & 31) as u32;
-            let result = val32.rotate_right(shift) as u64;
+            let result = sign_extend(val32.rotate_right(shift) as u64, 4);
             vm.state.registers.set(r_d, result);
             InstructionResult::Continue
         }
