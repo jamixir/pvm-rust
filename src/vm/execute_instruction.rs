@@ -23,7 +23,6 @@ impl Vm {
             }
             InstructionCategory::TwoRegisters => self.dispatch_two_registers(opcode),
             InstructionCategory::Unknown => InstructionResult::Panic,
-            _ => InstructionResult::Panic,
         }
     }
 }
