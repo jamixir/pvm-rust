@@ -41,7 +41,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             let data = &w_a.to_le_bytes()[..8];
             vm.write_memory(addr as usize, data)
         }
-        
+
         // Load instructions (unsigned)
         LOAD_IND_U8 => {
             let w_b = vm.state.registers.get(r_b);
@@ -103,7 +103,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
                 Err(MemoryError::Panic) => InstructionResult::Panic,
             }
         }
-        
+
         // Load instructions (signed)
         LOAD_IND_I8 => {
             let w_b = vm.state.registers.get(r_b);
@@ -153,7 +153,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
                 Err(MemoryError::Panic) => InstructionResult::Panic,
             }
         }
-        
+
         // Arithmetic instructions (32-bit)
         ADD_IMM_32 => {
             let w_b = vm.state.registers.get(r_b);
@@ -176,7 +176,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Bitwise instructions
         AND_IMM => {
             let w_b = vm.state.registers.get(r_b);
@@ -196,7 +196,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Comparison instructions
         SET_LT_U_IMM => {
             let w_b = vm.state.registers.get(r_b);
@@ -226,7 +226,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Shift instructions (32-bit)
         SHLO_L_IMM_32 => {
             let w_b = vm.state.registers.get(r_b);
@@ -252,7 +252,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Alternative shift instructions (32-bit)
         SHLO_L_IMM_ALT_32 => {
             let w_b = vm.state.registers.get(r_b);
@@ -278,23 +278,26 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Conditional move instructions
         CMOV_IZ_IMM => {
             let w_a = vm.state.registers.get(r_a);
             let w_b = vm.state.registers.get(r_b);
-            let result = w_a + (v_x - w_a) * (w_b == 0) as u64;
+            let diff = v_x.wrapping_sub(w_a);
+
+            let result = w_a.wrapping_add(diff * (w_b == 0) as u64);
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
         CMOV_NZ_IMM => {
             let w_a = vm.state.registers.get(r_a);
             let w_b = vm.state.registers.get(r_b);
-            let result = w_a + (v_x - w_a) * (w_b != 0) as u64;
+            let diff = v_x.wrapping_sub(w_a);
+            let result = w_a.wrapping_add(diff * (w_b != 0) as u64);
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Arithmetic instructions (64-bit)
         ADD_IMM_64 => {
             let w_b = vm.state.registers.get(r_b);
@@ -314,7 +317,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Shift instructions (64-bit)
         SHLO_L_IMM_64 => {
             let w_b = vm.state.registers.get(r_b);
@@ -338,7 +341,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Alternative shift instructions (64-bit)
         SHLO_L_IMM_ALT_64 => {
             let w_b = vm.state.registers.get(r_b);
@@ -362,7 +365,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         // Rotation instructions
         ROT_R_64_IMM => {
             let w_b = vm.state.registers.get(r_b);
@@ -396,7 +399,7 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             vm.state.registers.set(r_a, result);
             InstructionResult::Continue
         }
-        
+
         _ => InstructionResult::Panic,
     }
 }

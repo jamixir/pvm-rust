@@ -42,7 +42,7 @@ fn get_two_registers_one_offset_params(context: &VmContext, state: &VmState) -> 
 
     let l_x = (bitmask.skip(pc).saturating_sub(1)).min(4);
     let signed_immediate = unsigned_to_signed(decode_bytes(program, pc + 2, l_x), l_x);
-    let v_x = (pc as i64 + signed_immediate) as usize;
+    let v_x = ((pc as i64).wrapping_add(signed_immediate)) as usize;
 
     let w_a = state.registers.get(r_a);
     let w_b = state.registers.get(r_b);

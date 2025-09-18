@@ -165,7 +165,7 @@ fn get_reg_immediate_params(context: &VmContext, pc: usize) -> (usize, u64) {
     let bitmask = &context.bitmask;
 
     let register_index = (program[pc + 1] & 0x0F).min(12) as usize;
-    let l_x = (bitmask.skip(pc) - 1).min(4) as usize;
+    let l_x = (bitmask.skip(pc).saturating_sub(1)).min(4) as usize;
     let value = decode_and_extend(program, pc + 2, l_x);
 
     (register_index, value)

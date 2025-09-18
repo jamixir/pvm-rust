@@ -3,7 +3,6 @@ use crate::vm::utils::{sign_extend, unsigned_to_signed};
 use crate::vm::{masks, InstructionResult, Vm};
 use std::cmp::{max, min};
 
-
 #[inline(always)]
 pub fn dispatch_three_registers(opcode: u8, vm: &mut Vm) -> InstructionResult {
     let (w_a, w_b, r_d) = get_three_registers_params(vm);
@@ -112,11 +111,7 @@ pub fn dispatch_three_registers(opcode: u8, vm: &mut Vm) -> InstructionResult {
             InstructionResult::Continue
         }
         DIV_U_64 => {
-            let result = if w_b == 0 {
-                u64::MAX
-            } else {
-                w_a / w_b
-            };
+            let result = if w_b == 0 { u64::MAX } else { w_a / w_b };
             vm.state.registers.set(r_d, result);
             InstructionResult::Continue
         }
@@ -126,10 +121,8 @@ pub fn dispatch_three_registers(opcode: u8, vm: &mut Vm) -> InstructionResult {
 
             let result = if b == 0 {
                 u64::MAX
-            } else if b == -1 && a == i64::MIN {
-                w_a
             } else {
-                let signed_result = a / b;
+                let signed_result = a.wrapping_div(b);
                 sign_extend(signed_result as u64, 8)
             };
             vm.state.registers.set(r_d, result);
@@ -233,13 +226,13 @@ pub fn dispatch_three_registers(opcode: u8, vm: &mut Vm) -> InstructionResult {
         }
         CMOV_IZ => {
             let w_d = vm.state.registers.get(r_d);
-            let result = w_d + (w_a - w_d) * (w_b == 0) as u64;
+            let result = w_d.wrapping_add((w_a.wrapping_sub(w_d)).wrapping_mul((w_b == 0) as u64));
             vm.state.registers.set(r_d, result);
             InstructionResult::Continue
         }
         CMOV_NZ => {
             let w_d = vm.state.registers.get(r_d);
-            let result = w_d + (w_a - w_d) * (w_b != 0) as u64;
+            let result = w_d.wrapping_add((w_a.wrapping_sub(w_d)).wrapping_mul((w_b != 0) as u64));
             vm.state.registers.set(r_d, result);
             InstructionResult::Continue
         }

@@ -24,7 +24,7 @@ pub fn dispatch_one_immediate(
             // Formula (A.23) v0.7.0
             let l_x = bitmask.skip(state.pc).min(4);
             let shift_signed = unsigned_to_signed(decode_bytes(program, state.pc + 1, l_x), l_x);
-            let v_x = (state.pc as i64 + shift_signed) as usize;
+            let v_x = ((state.pc as i64).wrapping_add(shift_signed)) as usize;
             context.branch(v_x, true)
         }
         _ => {

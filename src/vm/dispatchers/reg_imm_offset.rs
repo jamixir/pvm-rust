@@ -72,7 +72,7 @@ fn get_reg_imm_offset_params(context: &VmContext, pc: usize) -> (usize, u64, usi
     let program = &context.program;
     let bitmask = &context.bitmask;
 
-    let first_byte = program.as_safe_slice()[pc + 1];
+    let first_byte = program[pc + 1];
 
     //  first_byte % 16, clamped to max 12
     let r_a = (first_byte & 0x0F).min(12) as usize;
@@ -87,7 +87,7 @@ fn get_reg_imm_offset_params(context: &VmContext, pc: usize) -> (usize, u64, usi
 
     let offset_bytes = decode_bytes(program, pc + 2 + l_x, l_y);
     let offset_signed = unsigned_to_signed(offset_bytes, l_y);
-    let v_y = (pc as i64 + offset_signed) as usize;
+    let v_y = (pc as i64).wrapping_add(offset_signed) as usize;
 
     (r_a, v_x, v_y)
 }
