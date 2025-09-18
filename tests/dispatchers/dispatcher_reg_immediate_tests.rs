@@ -9,6 +9,8 @@ mod tests {
 
     mod load_operations {
         use super::*;
+        use pvm::core::consts::PAGE_SIZE;
+        use pvm::core::{Memory, Permission};
 
         #[test]
         fn test_load_imm_loads_immediate_value() {
@@ -33,18 +35,22 @@ mod tests {
 
         #[test]
         fn test_load_imm_64_loads_64bit_immediate() {
-            let mut vm = VmTestBuilder::new(vec![
-                LOAD_IMM_64,
-                0x01,
-                0x78,
-                0x56,
-                0x34,
-                0x12,
-                0xFC,
-                0xDE,
-                0xBA,
-                0x98,
-            ], &[0b1, 0b100]).build();
+            let mut vm = VmTestBuilder::new(
+                vec![
+                    LOAD_IMM_64,
+                    0x01,
+                    0x78,
+                    0x56,
+                    0x34,
+                    0x12,
+                    0xFC,
+                    0xDE,
+                    0xBA,
+                    0x98,
+                ],
+                &[0b1, 0b100],
+            )
+            .build();
 
             let result = dispatch_reg_immediate(LOAD_IMM_64, &mut vm);
 
@@ -214,13 +220,120 @@ mod tests {
         }
 
         #[test]
-        fn test_load_operations_handle_memory_fault() {
+        fn test_load_operations_handle_memory_panic() {
             let mut vm =
                 VmTestBuilder::new(vec![LOAD_U8, 0x01, 0x00, 0x10, 0x00, 0x00], &[0b1]).build(); // Address 0x1000 (below MIN_ADDR)
 
             let result = dispatch_reg_immediate(LOAD_U8, &mut vm);
 
             assert_eq!(result, InstructionResult::Panic);
+        }
+
+        #[test]
+        fn test_load_u8_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            // Set page 1 (address 0x10000-0x10FFF) to no permissions
+            memory.set_access(0x10000, 1024, Permission::_None);
+
+            // Test address 0x10500 (middle of page 1)
+            let mut vm = VmTestBuilder::new(vec![LOAD_U8, 0x01, 0x00, 0x05, 0x01, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_U8, &mut vm);
+
+            assert_eq!(result, InstructionResult::Fault { page: 0x10000 });
+        }
+
+        #[test]
+        fn test_load_i8_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            memory.set_access(0x20000, 1, Permission::_None);
+
+            // Test address 0x20750 (random within page 2)
+            let mut vm = VmTestBuilder::new(vec![LOAD_I8, 0x01, 0x50, 0x07, 0x02, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_I8, &mut vm);
+
+            assert_eq!(result, InstructionResult::Fault { page: 0x20000 });
+        }
+
+        #[test]
+        fn test_load_u16_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            memory.set_access(0x30000, PAGE_SIZE, Permission::_None);
+
+            // Test address 0x30ABC (random within page 3)
+            let mut vm = VmTestBuilder::new(vec![LOAD_U16, 0x01, 0xBC, 0x0A, 0x03, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_U16, &mut vm);
+
+            assert_eq!(result, InstructionResult::Fault { page: 0x30000 });
+        }
+
+        #[test]
+        fn test_load_i16_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            memory.set_access(0x40000, 32, Permission::_None);
+
+            // Test address 0x40DEF (random within page 4)
+            let mut vm = VmTestBuilder::new(vec![LOAD_I16, 0x01, 0xEF, 0x0D, 0x04, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_I16, &mut vm);
+
+            assert_eq!(result, InstructionResult::Fault { page: 0x40000 });
+        }
+
+        #[test]
+        fn test_load_u32_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            memory.set_access(0x50000, 1, Permission::_None);
+
+            // Test address 0x50123 (random within page 5)
+            let mut vm = VmTestBuilder::new(vec![LOAD_U32, 0x01, 0x23, 0x01, 0x05, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_U32, &mut vm);
+
+            assert_eq!(result, InstructionResult::Fault { page: 0x50000 });
+        }
+
+        #[test]
+        fn test_load_i32_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            // length 0 should keep the page accessible
+            memory.set_access(0x60000, 0, Permission::_None);
+
+            // Test address 0x60FED (random within page 6)
+            let mut vm = VmTestBuilder::new(vec![LOAD_I32, 0x01, 0xED, 0x0F, 0x06, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_I32, &mut vm);
+
+            assert_eq!(result, InstructionResult::Continue);
+        }
+
+        #[test]
+        fn test_load_u64_page_fault() {
+            let mut memory = Memory::test_memory(100);
+            memory.set_access(0x70000, 1, Permission::_None);
+
+            // Test address 0x70BEE (random within page 7)
+            let mut vm = VmTestBuilder::new(vec![LOAD_U64, 0x01, 0xEE, 0x0B, 0x07, 0x00], &[0b1])
+                .with_memory(memory)
+                .build();
+
+            let result = dispatch_reg_immediate(LOAD_U64, &mut vm);
+
+            assert_eq!(result, InstructionResult::Fault { page: 0x70000 });
         }
 
         #[test]
@@ -244,7 +357,9 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 42);
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U8, &mut vm);
 
@@ -264,7 +379,9 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x1234); // Should be masked to 0x34
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U8, &mut vm);
 
@@ -284,7 +401,9 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x1234);
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U16, &mut vm);
 
@@ -304,7 +423,9 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x12345678); // Should be masked to 0x5678
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U16, &mut vm);
 
@@ -325,7 +446,9 @@ mod tests {
 
             let mut registers = Registers::new();
             registers.set(1, 0x12345678);
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U32, &mut vm);
 
@@ -346,7 +469,9 @@ mod tests {
 
             let mut registers = Registers::new();
             registers.set(1, 0x123456789ABCDEF0); // Should be masked to 0x9ABCDEF0
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U32, &mut vm);
 
@@ -366,7 +491,9 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x123456789ABCDEF0);
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U64, &mut vm);
 
@@ -386,7 +513,9 @@ mod tests {
             let program = vec![STORE_U8, 0x01, 0x00, 0x10, 0x00, 0x00]; // Address 0x1000 (below MIN_ADDR)
             let mut registers = Registers::new();
             registers.set(1, 42);
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(STORE_U8, &mut vm);
 
@@ -423,7 +552,9 @@ mod tests {
             let program = vec![JUMP_IND, 0x01, 0x00, 0x00, 0x00, 0x00];
             let mut registers = Registers::new();
             registers.set(1, 0xFFFF0000); // Special halt address
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(JUMP_IND, &mut vm);
 
@@ -435,7 +566,9 @@ mod tests {
             let program = vec![JUMP_IND, 0x01, 0x00, 0x00, 0x00, 0x00];
             let mut registers = Registers::new();
             registers.set(1, 3); // Unaligned address (not divisible by 2)
-            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1])
+                .with_registers(registers)
+                .build();
 
             let result = dispatch_reg_immediate(JUMP_IND, &mut vm);
 

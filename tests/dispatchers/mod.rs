@@ -1,5 +1,5 @@
-mod dispatcher_no_args_tests;
-mod dispatcher_one_immediate_tests;
-mod dispatcher_reg_imm_offset_tests;
-mod dispatcher_reg_immediate_tests;
-mod dispatcher_two_immediates_tests;
+pub mod dispatcher_no_args_tests;
+pub mod dispatcher_one_immediate_tests;
+pub mod dispatcher_reg_imm_offset_tests;
+pub mod dispatcher_reg_immediate_tests;
+pub mod dispatcher_two_immediates_tests;

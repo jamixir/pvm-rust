@@ -17,7 +17,7 @@ impl VmTestBuilder {
         let program = Program::from_vec(program_vec);
         let program_len = program.len();
         let bitmask = BitMask::from_bytes(bitmask_bytes, program_len);
-        
+
         Self {
             program,
             bitmask,
@@ -46,6 +46,11 @@ impl VmTestBuilder {
 
     pub fn with_jump_table(mut self, jump_table: Vec<usize>) -> Self {
         self.jump_table = jump_table;
+        self
+    }
+
+    pub fn with_memory(mut self, memory: Memory) -> Self {
+        self.memory = Some(memory);
         self
     }
 
