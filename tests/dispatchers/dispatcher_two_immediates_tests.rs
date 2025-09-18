@@ -2,7 +2,7 @@
 mod tests {
     use pvm::vm::dispatchers::two_immediates::dispatch_two_immediates;
     use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::test_utils::{VmTestBuilder, TEST_ADDR};
+    use pvm::vm::test_builder::{VmTestBuilder, TEST_ADDR};
     use pvm::vm::InstructionResult;
 
     #[test]
@@ -11,7 +11,7 @@ mod tests {
         program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
         program.push(42);
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U8, &mut vm);
 
@@ -34,7 +34,7 @@ mod tests {
         program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
         program.extend_from_slice(&[0x34, 0x12]);
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U16, &mut vm);
 
@@ -54,7 +54,7 @@ mod tests {
         program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
         program.extend_from_slice(&[0x78, 0x56, 0x34, 0x12]);
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1, 0b100]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1, 0b100]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U32, &mut vm);
 
@@ -74,7 +74,7 @@ mod tests {
         program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
         program.extend_from_slice(&[0x78, 0x56, 0x34, 0x12]);
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1, 0b10000]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1, 0b10000]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U64, &mut vm);
 
@@ -97,7 +97,7 @@ mod tests {
         program.extend_from_slice(&(addr as u32).to_le_bytes());
         program.extend_from_slice(&[0x44, 0x01]); // value = 0x0144, should become 0x44
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U8, &mut vm);
 
@@ -116,7 +116,7 @@ mod tests {
         program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes()); // 4-byte address
         program.extend_from_slice(&[0x00, 0x00, 0x01]); // value = 0x010000 = 65536, should become 0
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U16, &mut vm);
 
@@ -140,7 +140,7 @@ mod tests {
         program.extend_from_slice(&(test_addr_2byte).to_le_bytes()[0..3]); // 3-byte address
         program.push(0x99); // value
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U8, &mut vm);
 
@@ -164,7 +164,7 @@ mod tests {
         program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes()); // 4-byte address
         program.push(0xAA); // value
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U8, &mut vm);
 
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_unknown_opcode_returns_panic() {
-        let mut vm = VmTestBuilder::simple(vec![200, 1, 0x10, 0x42], &[0b10001]).build();
+        let mut vm = VmTestBuilder::new(vec![200, 1, 0x10, 0x42], &[0b10001]).build();
 
         let result = dispatch_two_immediates(200, &mut vm);
 
@@ -198,7 +198,7 @@ mod tests {
         program.extend_from_slice(&(bad_addr).to_le_bytes()[0..3]); // 3-byte address
         program.push(0x42); // value
 
-        let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+        let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
         let result = dispatch_two_immediates(STORE_IMM_U8, &mut vm);
 

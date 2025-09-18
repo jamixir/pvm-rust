@@ -3,8 +3,8 @@ mod tests {
     use pvm::core::Registers;
     use pvm::vm::dispatchers::reg_immediate::dispatch_reg_immediate;
     use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::test_utils::VmTestBuilder;
-    use pvm::vm::test_utils::TEST_ADDR;
+    use pvm::vm::test_builder::VmTestBuilder;
+    use pvm::vm::test_builder::TEST_ADDR;
     use pvm::vm::InstructionResult;
 
     mod load_operations {
@@ -12,7 +12,7 @@ mod tests {
 
         #[test]
         fn test_load_imm_loads_immediate_value() {
-            let mut vm = VmTestBuilder::simple(vec![LOAD_IMM, 1, 42], &[0b1]).build();
+            let mut vm = VmTestBuilder::new(vec![LOAD_IMM, 1, 42], &[0b1]).build();
 
             let result = dispatch_reg_immediate(LOAD_IMM, &mut vm);
 
@@ -23,7 +23,7 @@ mod tests {
         #[test]
         fn test_load_imm_handles_multi_byte_immediate() {
             let mut vm =
-                VmTestBuilder::simple(vec![LOAD_IMM, 0x21, 0x78, 0x56, 0x34, 0x12], &[0b1]).build();
+                VmTestBuilder::new(vec![LOAD_IMM, 0x21, 0x78, 0x56, 0x34, 0x12], &[0b1]).build();
 
             let result = dispatch_reg_immediate(LOAD_IMM, &mut vm);
 
@@ -33,22 +33,18 @@ mod tests {
 
         #[test]
         fn test_load_imm_64_loads_64bit_immediate() {
-            let mut vm = VmTestBuilder::new()
-                .with_program(vec![
-                    LOAD_IMM_64,
-                    0x01,
-                    0x78,
-                    0x56,
-                    0x34,
-                    0x12,
-                    0xFC,
-                    0xDE,
-                    0xBA,
-                    0x98,
-                ])
-                .with_bitmask_bytes(&[0b1, 0b100], 10)
-                .with_memory_pages(33)
-                .build();
+            let mut vm = VmTestBuilder::new(vec![
+                LOAD_IMM_64,
+                0x01,
+                0x78,
+                0x56,
+                0x34,
+                0x12,
+                0xFC,
+                0xDE,
+                0xBA,
+                0x98,
+            ], &[0b1, 0b100]).build();
 
             let result = dispatch_reg_immediate(LOAD_IMM_64, &mut vm);
 
@@ -58,7 +54,7 @@ mod tests {
 
         #[test]
         fn test_load_imm_64_caps_register_index_to_12() {
-            let mut vm = VmTestBuilder::simple(
+            let mut vm = VmTestBuilder::new(
                 vec![
                     LOAD_IMM_64,
                     15,
@@ -85,7 +81,7 @@ mod tests {
         fn test_load_u8_reads_unsigned_byte() {
             let mut program = vec![LOAD_U8, 0x4];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write test data to memory
             vm.memory
@@ -104,7 +100,7 @@ mod tests {
         fn test_load_i8_reads_signed_byte() {
             let mut program = vec![LOAD_I8, 11];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write 0xFF (255 unsigned, -1 signed) to memory
             vm.memory
@@ -123,7 +119,7 @@ mod tests {
         fn test_load_u16_reads_unsigned_16bit() {
             let mut program = vec![LOAD_U16, 12];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write little-endian 16-bit value
             vm.memory
@@ -142,7 +138,7 @@ mod tests {
         fn test_load_i16_reads_signed_16bit() {
             let mut program = vec![LOAD_I16, 0x01];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write 0xFFFF (-1 in signed 16-bit)
             vm.memory
@@ -161,7 +157,7 @@ mod tests {
         fn test_load_u32_reads_unsigned_32bit() {
             let mut program = vec![LOAD_U32, 0x01];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write little-endian 32-bit value
             vm.memory
@@ -180,7 +176,7 @@ mod tests {
         fn test_load_i32_reads_signed_32bit() {
             let mut program = vec![LOAD_I32, 0x01];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write 0xFFFFFFFF (-1 in signed 32-bit)
             vm.memory
@@ -199,7 +195,7 @@ mod tests {
         fn test_load_u64_reads_unsigned_64bit() {
             let mut program = vec![LOAD_U64, 0x01];
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
-            let mut vm = VmTestBuilder::simple(program, &[0b1]).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).build();
 
             // Write little-endian 64-bit value
             vm.memory
@@ -220,7 +216,7 @@ mod tests {
         #[test]
         fn test_load_operations_handle_memory_fault() {
             let mut vm =
-                VmTestBuilder::simple(vec![LOAD_U8, 0x01, 0x00, 0x10, 0x00, 0x00], &[0b1]).build(); // Address 0x1000 (below MIN_ADDR)
+                VmTestBuilder::new(vec![LOAD_U8, 0x01, 0x00, 0x10, 0x00, 0x00], &[0b1]).build(); // Address 0x1000 (below MIN_ADDR)
 
             let result = dispatch_reg_immediate(LOAD_U8, &mut vm);
 
@@ -230,7 +226,7 @@ mod tests {
         #[test]
         fn test_load_operations_cap_register_index() {
             let mut vm =
-                VmTestBuilder::simple(vec![LOAD_IMM, 0x5F, 42, 0x00, 0x00, 0x00], &[0b1]).build(); // Register 15 (0x5F & 0x0F = 15)
+                VmTestBuilder::new(vec![LOAD_IMM, 0x5F, 42, 0x00, 0x00, 0x00], &[0b1]).build(); // Register 15 (0x5F & 0x0F = 15)
 
             let result = dispatch_reg_immediate(LOAD_IMM, &mut vm);
 
@@ -248,7 +244,7 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 42);
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U8, &mut vm);
 
@@ -268,7 +264,7 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x1234); // Should be masked to 0x34
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U8, &mut vm);
 
@@ -288,7 +284,7 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x1234);
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U16, &mut vm);
 
@@ -308,7 +304,7 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x12345678); // Should be masked to 0x5678
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U16, &mut vm);
 
@@ -329,7 +325,7 @@ mod tests {
 
             let mut registers = Registers::new();
             registers.set(1, 0x12345678);
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U32, &mut vm);
 
@@ -350,7 +346,7 @@ mod tests {
 
             let mut registers = Registers::new();
             registers.set(1, 0x123456789ABCDEF0); // Should be masked to 0x9ABCDEF0
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U32, &mut vm);
 
@@ -370,7 +366,7 @@ mod tests {
             program.extend_from_slice(&(TEST_ADDR as u32).to_le_bytes());
             let mut registers = Registers::new();
             registers.set(1, 0x123456789ABCDEF0);
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U64, &mut vm);
 
@@ -390,7 +386,7 @@ mod tests {
             let program = vec![STORE_U8, 0x01, 0x00, 0x10, 0x00, 0x00]; // Address 0x1000 (below MIN_ADDR)
             let mut registers = Registers::new();
             registers.set(1, 42);
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(STORE_U8, &mut vm);
 
@@ -412,7 +408,8 @@ mod tests {
             registers.set(1, 10); // Jump to offset 10
             let jump_table = vec![2, 4, 6, 8, 10];
 
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1, 0b100], registers)
+            let mut vm = VmTestBuilder::new(program, &[0b1, 0b100])
+                .with_registers(registers)
                 .with_jump_table(jump_table)
                 .build();
 
@@ -426,7 +423,7 @@ mod tests {
             let program = vec![JUMP_IND, 0x01, 0x00, 0x00, 0x00, 0x00];
             let mut registers = Registers::new();
             registers.set(1, 0xFFFF0000); // Special halt address
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(JUMP_IND, &mut vm);
 
@@ -438,7 +435,7 @@ mod tests {
             let program = vec![JUMP_IND, 0x01, 0x00, 0x00, 0x00, 0x00];
             let mut registers = Registers::new();
             registers.set(1, 3); // Unaligned address (not divisible by 2)
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1], registers).build();
+            let mut vm = VmTestBuilder::new(program, &[0b1]).with_registers(registers).build();
 
             let result = dispatch_reg_immediate(JUMP_IND, &mut vm);
 
@@ -463,7 +460,8 @@ mod tests {
             let mut registers = Registers::new();
             registers.set(1, 8);
             let jump_table = vec![2, 4, 6, 8, 10];
-            let mut vm = VmTestBuilder::with_regs(program, &[0b1, 0b10], registers)
+            let mut vm = VmTestBuilder::new(program, &[0b1, 0b10])
+                .with_registers(registers)
                 .with_jump_table(jump_table)
                 .build();
 
