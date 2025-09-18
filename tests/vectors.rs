@@ -127,7 +127,7 @@ fn run_test_case(
 
     let state = VmState::new(registers, test_case.initial_pc, test_case.initial_gas);
 
-    let mut vm = Vm::new_for_test(context, state, Some(memory));
+    let mut vm = Vm::test_instance(context, state, Some(memory));
     let execution_result = vm.execute();
     let final_state = vm.state;
     let final_memory = vm.memory.unwrap();

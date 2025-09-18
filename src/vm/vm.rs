@@ -31,7 +31,7 @@ impl Vm {
         }
     }
 
-    pub fn new_for_test(context: Arc<VmContext>, state: VmState, memory: Option<Memory>) -> Self {
+    pub fn test_instance(context: Arc<VmContext>, state: VmState, memory: Option<Memory>) -> Self {
         Self {
             context,
             memory_ref: None,
