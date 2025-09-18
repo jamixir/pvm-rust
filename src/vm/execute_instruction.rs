@@ -12,12 +12,18 @@ impl Vm {
             InstructionCategory::RegImmediateOffset => self.dispatch_reg_immediate_offset(opcode),
             InstructionCategory::RegTwoImm => self.dispatch_reg_two_imm(opcode),
             InstructionCategory::ThreeRegisters => self.dispatch_three_registers(opcode),
-            InstructionCategory::TwoRegistersOneImmediate => self.dispatch_two_registers_one_immediate(opcode),
-            InstructionCategory::TwoRegistersOneOffset => self.dispatch_two_registers_one_offset(opcode),
-
+            InstructionCategory::TwoRegistersOneImmediate => {
+                self.dispatch_two_registers_one_immediate(opcode)
+            }
+            InstructionCategory::TwoRegistersOneOffset => {
+                self.dispatch_two_registers_one_offset(opcode)
+            }
+            InstructionCategory::TwoRegistersTwoImmediates => {
+                self.dispatch_two_registers_two_immediates(opcode)
+            }
+            InstructionCategory::TwoRegisters => self.dispatch_two_registers(opcode),
             InstructionCategory::Unknown => InstructionResult::Panic,
-
-            _ => unimplemented!(),
+            _ => InstructionResult::Panic,
         }
     }
 }

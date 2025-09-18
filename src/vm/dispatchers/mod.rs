@@ -5,8 +5,10 @@ pub mod reg_immediate;
 pub mod reg_two_imm;
 pub mod three_registers;
 pub mod two_immediates;
+pub mod two_registers;
 pub mod two_registers_one_immediate;
 pub mod two_registers_one_offset;
+pub mod two_registers_two_immediates;
 
 pub mod masks {
     pub const U8: u64 = 0xFF;
