@@ -1,4 +1,5 @@
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Registers {
     pub data: [u64; 13],
 }
@@ -31,26 +32,5 @@ impl Registers {
         let len = vec.len().min(13);
         data[..len].copy_from_slice(&vec[..len]);
         Self { data }
-    }
-}
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for Registers {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.data.serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for Registers {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let data = <[u64; 13]>::deserialize(deserializer)?;
-        Ok(Registers { data })
     }
 }

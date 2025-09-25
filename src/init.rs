@@ -1,5 +1,10 @@
 use crate::{Memory, Permission, Registers};
 
+pub enum InitializeProgramError {
+    InsufficientBytes,
+    InvalidProgram,
+}
+
 #[derive(Debug, Clone)]
 pub struct ProgramSegments<'a> {
     pub program_text: &'a [u8],
@@ -20,9 +25,9 @@ pub fn initialize_program(
     Some((code, registers, memory))
 }
 
-pub fn parse_program_segments(program: &[u8]) -> Result<ProgramSegments, &'static str> {
+pub fn parse_program_segments(program: &[u8]) -> Result<ProgramSegments, InitializeProgramError> {
     if program.len() < 15 {
-        return Err("insufficient_bytes");
+        return Err(InitializeProgramError::InsufficientBytes);
     }
 
     let o_size = u32::from_le_bytes([program[0], program[1], program[2], 0]) as usize;
@@ -34,7 +39,7 @@ pub fn parse_program_segments(program: &[u8]) -> Result<ProgramSegments, &'stati
 
     // 4 bytes for c
     if program.len() < offset + o_size + w_size + 4 {
-        return Err("invalid_program");
+        return Err(InitializeProgramError::InvalidProgram);
     }
 
     let o = &program[offset..offset + o_size];
@@ -51,7 +56,7 @@ pub fn parse_program_segments(program: &[u8]) -> Result<ProgramSegments, &'stati
     offset += 4;
 
     if program.len() < c_size + offset {
-        return Err("invalid_program");
+        return Err(InitializeProgramError::InvalidProgram);
     }
     let c = &program[offset..offset + c_size];
 

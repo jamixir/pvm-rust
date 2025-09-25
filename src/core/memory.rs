@@ -157,26 +157,6 @@ impl Memory {
             }
         }
     }
-
-    pub fn set_heap_bounds(&mut self, start: usize, end: usize) {
-        self.current_heap_pointer = start;
-        self.max_heap_pointer = end;
-    }
-
-    pub fn heap_alloc(&mut self, len: usize) -> Result<usize, MemoryError> {
-        let aligned_len = (len + PAGE_SIZE - 1) & !(PAGE_SIZE - 1); // Align to page size
-        if self.current_heap_pointer + aligned_len > self.max_heap_pointer {
-            return Err(MemoryError::Panic);
-        }
-
-        let allocated_addr = self.current_heap_pointer;
-        self.current_heap_pointer += aligned_len;
-
-        // Set read-write permissions for the allocated memory
-        self.set_access(allocated_addr, aligned_len, Permission::ReadWrite);
-
-        Ok(allocated_addr)
-    }
 }
 
 impl MemoryBuilder {
