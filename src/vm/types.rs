@@ -1,7 +1,6 @@
 use crate::core::{BitMask, Program, Registers, StartSet};
-use rustler::NifStruct;
-#[derive(Debug, Clone, PartialEq)]
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum InstructionResult {
     Continue,
     Jump(usize),
@@ -10,6 +9,8 @@ pub enum InstructionResult {
     Fault { page: usize },
     Ecall { call_id: u64 },
 }
+
+#[derive(Debug, Clone)]
 pub enum StepResult {
     Continue,
     Halt,
@@ -31,8 +32,8 @@ impl From<InstructionResult> for StepResult {
     }
 }
 
-#[derive(Debug, Clone, NifStruct, Copy)]
-#[module = "Pvm.Native.VmState"]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VmState {
     pub registers: Registers,
     pub pc: usize,

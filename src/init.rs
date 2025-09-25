@@ -1,7 +1,11 @@
-use crate::core::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
-use crate::core::Registers;
-use crate::core::{Memory, Permission};
+use crate::{Memory, Permission, Registers};
 
+pub enum InitializeProgramError {
+    InsufficientBytes,
+    InvalidProgram,
+}
+
+#[derive(Debug, Clone)]
 pub struct ProgramSegments<'a> {
     pub program_text: &'a [u8],
     pub data: &'a [u8],
@@ -10,18 +14,20 @@ pub struct ProgramSegments<'a> {
     pub code: &'a [u8],
 }
 
-#[inline]
-fn align_to_min_addr(x: usize) -> usize {
-    x.div_ceil(ZZ) * ZZ
-}
-#[inline]
-fn align_to_page_size(x: usize) -> usize {
-    x.div_ceil(ZP) * ZP
+pub fn initialize_program(
+    linked_program: &[u8],
+    args: &[u8],
+) -> Option<(Vec<u8>, Registers, Memory)> {
+    let program_segments = parse_program_segments(linked_program).ok()?;
+    let registers = create_initial_registers(args.len());
+    let memory = construct_memory(&program_segments, args);
+    let code = program_segments.code.to_vec();
+    Some((code, registers, memory))
 }
 
-pub fn parse_program_segments<'a>(program: &'a [u8]) -> Result<ProgramSegments<'a>, &'static str> {
+pub fn parse_program_segments(program: &[u8]) -> Result<ProgramSegments, InitializeProgramError> {
     if program.len() < 15 {
-        return Err("insufficient_bytes");
+        return Err(InitializeProgramError::InsufficientBytes);
     }
 
     let o_size = u32::from_le_bytes([program[0], program[1], program[2], 0]) as usize;
@@ -33,7 +39,7 @@ pub fn parse_program_segments<'a>(program: &'a [u8]) -> Result<ProgramSegments<'
 
     // 4 bytes for c
     if program.len() < offset + o_size + w_size + 4 {
-        return Err("invalid_program");
+        return Err(InitializeProgramError::InvalidProgram);
     }
 
     let o = &program[offset..offset + o_size];
@@ -50,56 +56,32 @@ pub fn parse_program_segments<'a>(program: &'a [u8]) -> Result<ProgramSegments<'
     offset += 4;
 
     if program.len() < c_size + offset {
-        return Err("invalid_program");
+        return Err(InitializeProgramError::InvalidProgram);
     }
     let c = &program[offset..offset + c_size];
 
-    return Ok(ProgramSegments {
+    Ok(ProgramSegments {
         program_text: o,
         data: w,
-        z: z,
-        s: s,
+        z,
+        s,
         code: c,
-    });
+    })
 }
 
-pub fn initialize_program<'a>(
-    program: &'a [u8],
-    args: &'a [u8],
-) -> Option<(&'a [u8], Registers, Memory)> {
-    let program_segments = parse_program_segments(program).ok()?;
-    let program_text_size = program_segments.program_text.len();
-    let data_size = program_segments.data.len();
-    let s = program_segments.s;
-    let z = program_segments.z;
+/// Construct memory layout from program segments and args
+pub fn construct_memory(program_segments: &ProgramSegments, args: &[u8]) -> Memory {
+    use crate::core::consts::{LAYOUT_BUFFER_SIZE, MAX_ADDR, MIN_ADDR, PAGE_SIZE, ZP, ZZ};
 
-    if align_to_min_addr(program_text_size)
-        + align_to_min_addr(data_size + z * PAGE_SIZE)
-        + align_to_min_addr(s)
-        > MAX_ADDR - 5 * MIN_ADDR - LAYOUT_BUFFER_SIZE
-    {
-        return None;
+    #[inline]
+    fn align_to_min_addr(x: usize) -> usize {
+        x.div_ceil(ZZ) * ZZ
     }
-    let registers = Registers::from_slice([
-        0xFFFF_0000,       // register 0
-        0xFEFE_0000,       // register 1
-        0,                 // register 2
-        0,                 // register 3
-        0,                 // register 4
-        0,                 // register 5
-        0,                 // register 6
-        0xFEFF_0000,       // register 7
-        args.len() as u64, // register 8
-        0,                 // register 9
-        0,                 // register 10
-        0,                 // register 11
-        0,                 // register 12
-    ]);
-    let memory = construct_memory(&program_segments, args);
-    Some((program_segments.code, registers, memory))
-}
+    #[inline]
+    fn align_to_page_size(x: usize) -> usize {
+        x.div_ceil(ZP) * ZP
+    }
 
-pub fn construct_memory<'a>(program_segments: &'a ProgramSegments<'a>, args: &'a [u8]) -> Memory {
     let mut builder = Memory::builder();
     let program_text = program_segments.program_text;
     let data = program_segments.data;
@@ -127,12 +109,10 @@ pub fn construct_memory<'a>(program_segments: &'a ProgramSegments<'a>, args: &'a
         .get_mut_slice(prog_start, program_text.len())
         .copy_from_slice(program_text);
     //  Data
-
     builder
         .get_mut_slice(data_start, data.len())
         .copy_from_slice(data);
     //  Args
-
     builder
         .get_mut_slice(args_start, args.len())
         .copy_from_slice(args);
@@ -145,4 +125,22 @@ pub fn construct_memory<'a>(program_segments: &'a ProgramSegments<'a>, args: &'a
     builder.set_heap_bounds(heap_start, heap_end);
 
     builder.build()
+}
+
+fn create_initial_registers(args_len: usize) -> Registers {
+    Registers::from_slice([
+        0xFFFF_0000,     // register 0
+        0xFEFE_0000,     // register 1
+        0,               // register 2
+        0,               // register 3
+        0,               // register 4
+        0,               // register 5
+        0,               // register 6
+        0xFEFF_0000,     // register 7
+        args_len as u64, // register 8
+        0,               // register 9
+        0,               // register 10
+        0,               // register 11
+        0,               // register 12
+    ])
 }

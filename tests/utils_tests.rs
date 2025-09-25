@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pvm::core::{BitMask, Program, StartSet};
+    use pvm_core::core::{BitMask, Program, StartSet};
 
     #[test]
     fn test_skip_basic_patterns() {

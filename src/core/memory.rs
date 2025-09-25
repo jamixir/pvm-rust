@@ -1,13 +1,5 @@
-use std::sync::Mutex;
-
-use crate::{
-    atoms,
-    core::consts::{MEMORY_SIZE, MIN_ADDR, PAGES_PER_ACCESS_WORD, PAGE_SIZE},
-    core::errors::ToNifResult,
-    to_rustler_error,
-};
+use crate::core::consts::{MEMORY_SIZE, MIN_ADDR, PAGES_PER_ACCESS_WORD, PAGE_SIZE};
 use memmap::{MmapMut, MmapOptions};
-use rustler::{Binary, Env, NifResult, NifTuple, OwnedBinary, Resource, ResourceArc};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -34,23 +26,18 @@ pub enum MemoryError {
     Panic,
 }
 
-pub enum MutexError {
-    Poisoned,
-    MemoryAlreadyPresent,
-}
-
-#[derive(NifTuple)]
-pub struct FaultError {
-    pub fault: rustler::Atom,
-    pub page_addr: usize,
-}
-
 #[derive(Debug)]
 pub struct Memory {
     mmap: MmapMut,
     access: Vec<u64>,
     pub current_heap_pointer: usize,
     pub max_heap_pointer: usize,
+}
+
+impl Default for Memory {
+    fn default() -> Self {
+        Self::builder().build()
+    }
 }
 
 pub struct MemoryBuilder {
@@ -104,7 +91,7 @@ impl Memory {
 
     #[inline(always)]
     pub fn write(&mut self, addr: usize, data: &[u8]) -> Result<(), MemoryError> {
-        if data.len() == 0 {
+        if data.is_empty() {
             return Ok(());
         }
         if addr < MIN_ADDR {
@@ -121,12 +108,18 @@ impl Memory {
 
     #[inline(always)]
     pub fn check_access(&self, addr: usize, len: usize, required_permission: Permission) -> bool {
-        if addr + len > self.mmap.len() {
+        // Check for overflow in addr + len
+        let end_addr = match addr.checked_add(len) {
+            Some(end) => end,
+            None => return false,
+        };
+
+        if end_addr > self.mmap.len() {
             return false;
         }
 
         let page_start = addr >> 12;
-        let page_end: usize = (addr + len).div_ceil(PAGE_SIZE);
+        let page_end: usize = end_addr.div_ceil(PAGE_SIZE);
         let required_bits = required_permission as u64;
 
         unsafe {
@@ -186,111 +179,5 @@ impl MemoryBuilder {
     #[inline(always)]
     pub fn build(self) -> Memory {
         self.memory
-    }
-}
-#[derive(Debug)]
-pub struct MemoryResource {
-    pub memory: Mutex<Option<Memory>>,
-}
-
-impl Resource for MemoryResource {}
-
-impl MemoryResource {
-    pub fn new() -> Self {
-        Self {
-            memory: Mutex::new(None),
-        }
-    }
-
-    pub fn new_ref() -> ResourceArc<Self> {
-        ResourceArc::new(Self::new())
-    }
-}
-
-pub type MemoryRef = ResourceArc<MemoryResource>;
-
-#[rustler::nif]
-pub fn build_memory() -> MemoryRef {
-    let memory_ref = MemoryResource::new_ref();
-
-    let memory = Memory::builder().build();
-    let _ = put_owned(&memory_ref, memory);
-    memory_ref
-}
-
-pub fn get_owned(mem_ref: &MemoryRef) -> Result<Option<Memory>, MutexError> {
-    let mut guard = mem_ref.memory.lock().map_err(|_| MutexError::Poisoned)?;
-    Ok(guard.take())
-}
-
-pub fn put_owned(mem_ref: &MemoryRef, memory: Memory) -> Result<(), MutexError> {
-    let mut guard = mem_ref.memory.lock().map_err(|_| MutexError::Poisoned)?;
-    if guard.is_none() {
-        *guard = Some(memory);
-        Ok(())
-    } else {
-        Err(MutexError::MemoryAlreadyPresent)
-    }
-}
-
-#[rustler::nif]
-pub fn memory_read<'a>(
-    env: Env<'a>,
-    mem_ref: MemoryRef,
-    addr: usize,
-    len: usize,
-) -> NifResult<(rustler::Atom, rustler::Term<'a>)> {
-    let memory_guard: std::sync::MutexGuard<'_, Option<Memory>> = mem_ref
-        .memory
-        .lock()
-        .map_err(|_| to_rustler_error!(atoms::mutex_poisoned()))?;
-
-    match memory_guard.as_ref() {
-        Some(memory) => memory
-            .read(addr, len)
-            .map(|slice| {
-                let mut owned_binary = OwnedBinary::new(slice.len()).unwrap();
-                owned_binary.as_mut_slice().copy_from_slice(slice);
-                Binary::from_owned(owned_binary, env)
-            })
-            .to_nif(env),
-        None => Err(to_rustler_error!(atoms::memory_not_available())),
-    }
-}
-
-#[rustler::nif]
-pub fn memory_write<'a>(
-    env: Env<'a>,
-    mem_ref: MemoryRef,
-    addr: usize,
-    data: Binary,
-) -> NifResult<(rustler::Atom, rustler::Term<'a>)> {
-    let mut memory_guard = mem_ref
-        .memory
-        .lock()
-        .map_err(|_| to_rustler_error!(atoms::mutex_poisoned()))?;
-    match memory_guard.as_mut() {
-        Some(memory) => memory.write(addr, &data).map(|_| atoms::ok()).to_nif(env),
-        None => Err(to_rustler_error!(atoms::memory_not_available())),
-    }
-}
-
-#[rustler::nif]
-pub fn set_memory_access<'a>(
-    mem_ref: MemoryRef,
-    addr: usize,
-    len: usize,
-    permission: u8,
-) -> NifResult<MemoryRef> {
-    let mut memory_guard = mem_ref
-        .memory
-        .lock()
-        .map_err(|_| to_rustler_error!(atoms::mutex_poisoned()))?;
-    match memory_guard.as_mut() {
-        Some(memory) => {
-            memory.set_access(addr, len, permission.into());
-            Ok(mem_ref.clone())
-        }
-        None => Err(to_rustler_error!(atoms::memory_not_available())),
     }
 }

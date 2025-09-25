@@ -1,17 +1,24 @@
-use rustler::{Decoder, Encoder, Env, Term};
-
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Registers {
     pub data: [u64; 13],
 }
 
-impl Registers {
-    pub fn new() -> Self {
+impl Default for Registers {
+    fn default() -> Self {
         Self { data: [0; 13] }
     }
+}
+
+impl Registers {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn get(&self, index: usize) -> u64 {
         self.data[index]
     }
+
     pub fn set(&mut self, index: usize, value: u64) {
         self.data[index] = value;
     }
@@ -25,22 +32,5 @@ impl Registers {
         let len = vec.len().min(13);
         data[..len].copy_from_slice(&vec[..len]);
         Self { data }
-    }
-}
-
-impl Decoder<'_> for Registers {
-    fn decode(term: Term) -> rustler::NifResult<Self> {
-        let list: Vec<u64> = term.decode()?;
-        let mut data = [0u64; 13];
-        for (i, &value) in list.iter().take(13).enumerate() {
-            data[i] = value;
-        }
-        Ok(Registers { data })
-    }
-}
-
-impl Encoder for Registers {
-    fn encode<'a>(&self, env: Env<'a>) -> Term<'a> {
-        self.data.to_vec().encode(env)
     }
 }

@@ -1,7 +1,5 @@
 use std::ops::Index;
 
-use rustler::{Decoder, Encoder, Env, Term};
-
 #[derive(Debug)]
 pub struct Program {
     pub program: Vec<u8>,
@@ -57,18 +55,5 @@ impl Index<std::ops::Range<usize>> for Program {
     #[inline(always)]
     fn index(&self, range: std::ops::Range<usize>) -> &Self::Output {
         unsafe { self.program.get_unchecked(range) }
-    }
-}
-
-impl Decoder<'_> for Program {
-    fn decode(term: Term) -> rustler::NifResult<Self> {
-        let list: Vec<u8> = term.decode()?;
-        Ok(Program::from_vec(list))
-    }
-}
-
-impl Encoder for Program {
-    fn encode<'a>(&self, env: Env<'a>) -> Term<'a> {
-        self.program.encode(env)
     }
 }

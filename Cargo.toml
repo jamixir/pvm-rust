@@ -1,15 +1,26 @@
-[package]
-name = "pvm"
+                                                                                                                            [package]
+name = "pvm-rust"
 version = "0.1.0"
 edition = "2021"
+authors = ["Luke <luke@jamixir.com>"]
+license = "MIT OR Apache-2.0"
+description = "Pure Rust implementation of the Polkadot Virtual Machine"
+repository = "https://github.com/jamixir/pvm-rust"
 
 [lib]
-name = "pvm"
-path = "src/lib.rs"
-crate-type = ["cdylib", "rlib"]
+name = "pvm_core"
+crate-type = ["rlib"]
 
 [dependencies]
-rustler = "0.36.2"
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
 memmap = "0.7.0"
+
+[features]
+default = ["std", "serde"]
+std = []                                                                                                                                                                                                                                                                                                                                                                                                            
+serde = ["dep:serde", "dep:serde_json"]
+
+[dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

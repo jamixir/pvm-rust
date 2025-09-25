@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use pvm::core::consts::PAGE_SIZE;
-    use pvm::core::{Memory, Permission, Registers};
-    use pvm::vm::dispatchers::two_registers_one_immediate::dispatch_two_registers_one_immediate;
-    use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::test_builder::VmTestBuilder;
-    use pvm::vm::InstructionResult;
+    use pvm_core::core::consts::PAGE_SIZE;
+    use pvm_core::core::{Memory, Permission, Registers};
+    use pvm_core::vm::dispatchers::two_registers_one_immediate::dispatch_two_registers_one_immediate;
+    use pvm_core::vm::instructions::opcodes::*;
+    use pvm_core::vm::test_builder::VmTestBuilder;
+    use pvm_core::vm::InstructionResult;
 
     mod load_ind_operations {
         use super::*;
