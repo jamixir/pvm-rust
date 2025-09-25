@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use pvm::core::{BitMask, Program, Registers, StartSet};
-    use pvm::vm::dispatchers::one_immediate::dispatch_one_immediate;
-    use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::{InstructionResult, VmContext, VmState};
+    use pvm_core::core::{BitMask, Program, Registers, StartSet};
+    use pvm_core::vm::dispatchers::one_immediate::dispatch_one_immediate;
+    use pvm_core::vm::instructions::opcodes::*;
+    use pvm_core::vm::{InstructionResult, VmContext, VmState};
 
     fn create_test_context(program: Program, bitmask: BitMask) -> VmContext {
         let start_set = StartSet::build(&program, &bitmask);

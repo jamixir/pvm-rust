@@ -1,16 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use pvm::core::Registers;
-    use pvm::vm::dispatchers::reg_immediate::dispatch_reg_immediate;
-    use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::test_builder::VmTestBuilder;
-    use pvm::vm::test_builder::TEST_ADDR;
-    use pvm::vm::InstructionResult;
+    use pvm_core::core::Registers;
+    use pvm_core::vm::dispatchers::reg_immediate::dispatch_reg_immediate;
+    use pvm_core::vm::instructions::opcodes::*;
+    use pvm_core::vm::test_builder::VmTestBuilder;
+    use pvm_core::vm::test_builder::TEST_ADDR;
+    use pvm_core::vm::InstructionResult;
 
     mod load_operations {
         use super::*;
-        use pvm::core::consts::PAGE_SIZE;
-        use pvm::core::{Memory, Permission};
+        use pvm_core::core::consts::PAGE_SIZE;
+        use pvm_core::core::{Memory, Permission};
 
         #[test]
         fn test_load_imm_loads_immediate_value() {

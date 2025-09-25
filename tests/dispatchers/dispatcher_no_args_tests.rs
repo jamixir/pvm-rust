@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use pvm::vm::dispatchers::no_args::dispatch_no_args;
-    use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::InstructionResult;
+    use pvm_core::vm::dispatchers::no_args::dispatch_no_args;
+    use pvm_core::vm::instructions::opcodes::*;
+    use pvm_core::vm::InstructionResult;
 
     #[test]
     fn test_all_no_args_opcodes() {

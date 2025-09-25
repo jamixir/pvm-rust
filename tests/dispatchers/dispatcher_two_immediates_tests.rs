@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use pvm::vm::dispatchers::two_immediates::dispatch_two_immediates;
-    use pvm::vm::instructions::opcodes::*;
-    use pvm::vm::test_builder::{VmTestBuilder, TEST_ADDR};
-    use pvm::vm::InstructionResult;
+    use pvm_core::vm::dispatchers::two_immediates::dispatch_two_immediates;
+    use pvm_core::vm::instructions::opcodes::*;
+    use pvm_core::vm::test_builder::{VmTestBuilder, TEST_ADDR};
+    use pvm_core::vm::InstructionResult;
 
     #[test]
     fn test_store_imm_u8_basic() {

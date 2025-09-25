@@ -1,4 +1,4 @@
-use pvm::{
+use pvm_core::{
     core::{Memory, Permission, Registers, StartSet},
     encoding::deblob,
     vm::{ExecutionResult, Vm, VmContext, VmState},
