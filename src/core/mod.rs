@@ -1,6 +1,5 @@
 mod bitmask;
 pub mod consts;
-pub mod errors;
 mod memory;
 mod program;
 mod registers;
