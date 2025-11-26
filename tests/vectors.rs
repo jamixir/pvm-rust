@@ -1,14 +1,14 @@
 use pvm_core::{
     core::{Memory, Permission, Registers, StartSet},
     encoding::deblob,
-    vm::{ExecutionResult, Vm, VmContext, VmState},
+    vm::{tracer::Tracer, ExecutionResult, Vm, VmContext, VmState},
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-static TEST_VECTORS_DIR: &str = "/home/luke/Documents/Jamixir/pvm-test-vectors/pvm/programs/";
+static TEST_VECTORS_DIR: &str = "../pvm-test-vectors/pvm/programs/";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct TestCase {
@@ -118,11 +118,14 @@ fn run_test_case(
     let deblob_result = deblob(&test_case.program);
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
+    let tracer = Tracer::new();
+
     let context = Arc::new(VmContext {
         program: deblob_result.program,
         bitmask: deblob_result.bitmask,
         jump_table: deblob_result.jump_table,
         start_set,
+        tracer,
     });
 
     let state = VmState::new(registers, test_case.initial_pc, test_case.initial_gas);

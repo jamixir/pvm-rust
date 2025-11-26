@@ -6,6 +6,7 @@ use crate::{
     StartSet,
 };
 use std::sync::Arc;
+use crate::vm::tracer::Tracer;
 
 #[derive(Debug)]
 pub struct ExecutionOutput {
@@ -25,11 +26,14 @@ pub fn execute_linked(
     let deblob_result = deblob(&code);
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
+    let tracer = Tracer::new();
+
     let context = Arc::new(VmContext {
         program: deblob_result.program,
         bitmask: deblob_result.bitmask,
         jump_table: deblob_result.jump_table,
         start_set,
+        tracer,
     });
 
     let state = VmState::new(registers, pc, gas);
@@ -56,11 +60,14 @@ pub fn execute_disassembled(
     let deblob_result = deblob(code);
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
+    let tracer = Tracer::new();
+
     let context = Arc::new(VmContext {
         program: deblob_result.program,
         bitmask: deblob_result.bitmask,
         jump_table: deblob_result.jump_table,
         start_set,
+        tracer,
     });
 
     let registers = custom_registers.unwrap_or_else(|| Registers::default());
