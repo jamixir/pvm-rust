@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{Ordering};
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::vm::VmState;
@@ -30,14 +30,14 @@ impl Tracer {
 
         Self {
             file,
-            counter: AtomicU64::new(1),
+            counter: 1,
         }
     }
 
     pub fn trace(&self, pc: usize, opcode: u8, state: &VmState) {
         if let Some(mutex) = &self.file {
             let mut file = mutex.lock().unwrap();
-            let counter = self.counter.fetch_add(1, Ordering::SeqCst);
+            let counter = self.counter + 1;
             
             let counter_str = format!("{:>5}", counter);
             let pc_str = format!("{:>5}", pc);
