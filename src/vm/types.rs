@@ -1,4 +1,5 @@
 use crate::core::{BitMask, Program, Registers, StartSet};
+use crate::vm::tracer::Tracer;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum InstructionResult {
@@ -66,6 +67,7 @@ pub struct VmContext {
     pub bitmask: BitMask,
     pub jump_table: Vec<usize>,
     pub start_set: StartSet,
+    pub tracer: Tracer,
 }
 
 impl VmContext {

@@ -4,6 +4,7 @@ pub mod instructions;
 pub mod memory_wrappers;
 pub mod single_step;
 pub mod test_builder;
+pub mod tracer;
 pub mod types;
 pub mod utils;
 pub mod vm;

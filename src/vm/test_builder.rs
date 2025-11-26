@@ -1,6 +1,7 @@
 use crate::core::{BitMask, Memory, Program, Registers, StartSet};
 use crate::vm::{Vm, VmContext, VmState};
 use std::sync::Arc;
+use crate::vm::tracer::Tracer;
 
 pub struct VmTestBuilder {
     program: Program,
@@ -47,11 +48,14 @@ impl VmTestBuilder {
     pub fn build(self) -> Vm {
         let start_set = StartSet::build(&self.program, &self.bitmask);
 
+        let tracer = Tracer::new();
+
         let context = Arc::new(VmContext {
             program: self.program,
             bitmask: self.bitmask,
             jump_table: self.jump_table,
             start_set,
+            tracer,
         });
 
         let state = VmState::new(self.registers, self.pc, self.gas);
