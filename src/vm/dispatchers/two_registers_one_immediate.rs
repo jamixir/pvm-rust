@@ -63,7 +63,8 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             let addr = w_b.wrapping_add(v_x);
             match vm.read_memory(addr as usize, 2) {
                 Ok(data) => {
-                    let value = decode_le(data, 2);
+                    let value =
+                        decode_le(data, 2).expect("read_memory guarantees sufficient bytes");
                     vm.state.registers.set(r_a, value);
                     InstructionResult::Continue
                 }
@@ -78,7 +79,8 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             let addr = w_b.wrapping_add(v_x);
             match vm.read_memory(addr as usize, 4) {
                 Ok(data) => {
-                    let value = decode_le(data, 4);
+                    let value =
+                        decode_le(data, 4).expect("read_memory guarantees sufficient bytes");
                     vm.state.registers.set(r_a, value);
                     InstructionResult::Continue
                 }
@@ -93,7 +95,8 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             let addr = w_b.wrapping_add(v_x);
             match vm.read_memory(addr as usize, 8) {
                 Ok(data) => {
-                    let value = decode_le(data, 8);
+                    let value =
+                        decode_le(data, 8).expect("read_memory guarantees sufficient bytes");
                     vm.state.registers.set(r_a, value);
                     InstructionResult::Continue
                 }
@@ -126,7 +129,8 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             let addr = w_b.wrapping_add(v_x);
             match vm.read_memory(addr as usize, 2) {
                 Ok(data) => {
-                    let value = decode_le(data, 2);
+                    let value =
+                        decode_le(data, 2).expect("read_memory guarantees sufficient bytes");
                     let signed_value = sign_extend(value, 2);
                     vm.state.registers.set(r_a, signed_value);
                     InstructionResult::Continue
@@ -142,7 +146,8 @@ pub fn dispatch_two_registers_one_immediate(opcode: u8, vm: &mut Vm) -> Instruct
             let addr = w_b.wrapping_add(v_x);
             match vm.read_memory(addr as usize, 4) {
                 Ok(data) => {
-                    let value = decode_le(data, 4);
+                    let value =
+                        decode_le(data, 4).expect("read_memory guarantees sufficient bytes");
                     let signed_value = sign_extend(value, 4);
                     vm.state.registers.set(r_a, signed_value);
                     InstructionResult::Continue
