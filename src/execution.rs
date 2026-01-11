@@ -23,7 +23,10 @@ pub fn execute_linked(
 ) -> Option<ExecutionOutput> {
     let (code, registers, memory) = initialize_program(bytecode, args)?;
 
-    let deblob_result = deblob(&code);
+    let deblob_result = match deblob(&code) {
+        Ok(result) => result,
+        Err(_) => return None,
+    };
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
     let tracer = Tracer::new();
@@ -57,7 +60,7 @@ pub fn execute_disassembled(
     pc: usize,
     gas: u64,
 ) -> ExecutionOutput {
-    let deblob_result = deblob(code);
+    let deblob_result = deblob(code).expect("Failed to decode program");
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
     let tracer = Tracer::new();

@@ -60,7 +60,8 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
             let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             match vm.read_memory(address as usize, 2) {
                 Ok(data) => {
-                    let value = decode_le(data, 2);
+                    let value =
+                        decode_le(data, 2).expect("read_memory guarantees sufficient bytes");
                     vm.state.registers.set(register_index, value);
                     InstructionResult::Continue
                 }
@@ -74,7 +75,8 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
             let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             match vm.read_memory(address as usize, 2) {
                 Ok(data) => {
-                    let value = decode_le(data, 2);
+                    let value =
+                        decode_le(data, 2).expect("read_memory guarantees sufficient bytes");
                     let signed_value = sign_extend(value, 2);
                     vm.state.registers.set(register_index, signed_value);
                     InstructionResult::Continue
@@ -89,7 +91,8 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
             let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             match vm.read_memory(address as usize, 4) {
                 Ok(data) => {
-                    let value = decode_le(data, 4);
+                    let value =
+                        decode_le(data, 4).expect("read_memory guarantees sufficient bytes");
                     vm.state.registers.set(register_index, value);
                     InstructionResult::Continue
                 }
@@ -103,7 +106,8 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
             let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             match vm.read_memory(address as usize, 4) {
                 Ok(data) => {
-                    let value = decode_le(data, 4);
+                    let value =
+                        decode_le(data, 4).expect("read_memory guarantees sufficient bytes");
                     let signed_value = sign_extend(value, 4);
                     vm.state.registers.set(register_index, signed_value);
                     InstructionResult::Continue
@@ -118,7 +122,8 @@ pub fn dispatch_reg_immediate(opcode: u8, vm: &mut Vm) -> InstructionResult {
             let (register_index, address) = get_reg_immediate_params(&vm.context, vm.state.pc);
             match vm.read_memory(address as usize, 8) {
                 Ok(data) => {
-                    let value = decode_le(data, 8);
+                    let value =
+                        decode_le(data, 8).expect("read_memory guarantees sufficient bytes");
                     vm.state.registers.set(register_index, value);
                     InstructionResult::Continue
                 }

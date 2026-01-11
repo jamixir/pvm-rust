@@ -115,7 +115,7 @@ fn run_test_case(
     let memory =
         setup_memory_with_permissions(&test_case.initial_page_map, &test_case.initial_memory)?;
 
-    let deblob_result = deblob(&test_case.program);
+    let deblob_result = deblob(&test_case.program)?;
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
     let tracer = Tracer::new();

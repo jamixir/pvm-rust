@@ -12,7 +12,7 @@ mod tests {
         z: u64,
     ) -> (Program, BitMask, Vec<usize>) {
         let encoded = encode_program(program, bitmask, jump_table, z);
-        let blob = deblob(&encoded);
+        let blob = deblob(&encoded).expect("Failed to decode valid encoded program");
         (blob.program, blob.bitmask, blob.jump_table)
     }
 

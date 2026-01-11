@@ -12,7 +12,7 @@ pub use core::{
 
 pub use vm::{ExecutionResult, InstructionResult, StepResult, Vm, VmContext, VmState};
 
-pub use encoding::{deblob, encode_program, Deblob};
+pub use encoding::{deblob, encode_program, Deblob, DecodeError};
 
 pub use init::{construct_memory, initialize_program, parse_program_segments, ProgramSegments};
 
