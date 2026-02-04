@@ -67,7 +67,7 @@ pub struct VmContext {
     pub bitmask: BitMask,
     pub jump_table: Vec<usize>,
     pub start_set: StartSet,
-    pub tracer: Tracer,
+    pub tracer: Option<Tracer>,
 }
 
 impl VmContext {

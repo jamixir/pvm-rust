@@ -3,7 +3,7 @@ mod tests {
     use pvm_core::core::{BitMask, Program, Registers, StartSet};
     use pvm_core::vm::dispatchers::one_immediate::dispatch_one_immediate;
     use pvm_core::vm::instructions::opcodes::*;
-    use pvm_core::vm::{InstructionResult, VmContext, VmState, tracer::Tracer};
+    use pvm_core::vm::{InstructionResult, VmContext, VmState};
 
     fn create_test_context(program: Program, bitmask: BitMask) -> VmContext {
         let start_set = StartSet::build(&program, &bitmask);
@@ -12,7 +12,7 @@ mod tests {
             bitmask,
             jump_table: vec![],
             start_set,
-            tracer: Tracer::new(),
+            tracer: None,
         }
     }
 
