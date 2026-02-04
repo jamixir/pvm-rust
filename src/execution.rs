@@ -6,6 +6,7 @@ use crate::{
     StartSet,
 };
 use std::sync::Arc;
+use std::env;
 use crate::vm::tracer::Tracer;
 
 #[derive(Debug)]
@@ -29,7 +30,11 @@ pub fn execute_linked(
     };
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
-    let tracer = Tracer::new();
+    let tracer = if env::var("PVM_TRACE").map(|v| v == "true").unwrap_or(false) {
+        Some(Tracer::new())
+    } else {
+        None
+    };
 
     let context = Arc::new(VmContext {
         program: deblob_result.program,
@@ -63,7 +68,11 @@ pub fn execute_disassembled(
     let deblob_result = deblob(code).expect("Failed to decode program");
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
-    let tracer = Tracer::new();
+    let tracer = if env::var("PVM_TRACE").map(|v| v == "true").unwrap_or(false) {
+        Some(Tracer::new())
+    } else {
+        None
+    };
 
     let context = Arc::new(VmContext {
         program: deblob_result.program,

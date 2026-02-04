@@ -20,7 +20,9 @@ impl Vm {
         let exit_reason_ = exit_reason.into();
         self.state.pc = next_counter;
 
-        self.context.tracer.trace(prev_counter, opcode, &self.state);
+        if let Some(tracer) = self.context.tracer.as_ref() {
+            tracer.trace(prev_counter, opcode, &self.state);
+        }
 
         exit_reason_
     }

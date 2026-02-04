@@ -1,7 +1,7 @@
 use pvm_core::{
     core::{Memory, Permission, Registers, StartSet},
     encoding::deblob,
-    vm::{tracer::Tracer, ExecutionResult, Vm, VmContext, VmState},
+    vm::{ExecutionResult, Vm, VmContext, VmState},
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -118,14 +118,12 @@ fn run_test_case(
     let deblob_result = deblob(&test_case.program)?;
     let start_set = StartSet::build(&deblob_result.program, &deblob_result.bitmask);
 
-    let tracer = Tracer::new();
-
     let context = Arc::new(VmContext {
         program: deblob_result.program,
         bitmask: deblob_result.bitmask,
         jump_table: deblob_result.jump_table,
         start_set,
-        tracer,
+        tracer: None,
     });
 
     let state = VmState::new(registers, test_case.initial_pc, test_case.initial_gas);
