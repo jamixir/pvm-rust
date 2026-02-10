@@ -10,7 +10,7 @@ pub use core::{
     BitMask, Memory, MemoryBuilder, MemoryError, Permission, Program, Registers, StartSet,
 };
 
-pub use vm::{ExecutionResult, InstructionResult, StepResult, Vm, VmContext, VmState};
+pub use vm::{ExecutionResult, InstructionResult, ChildVmInstance, StepResult, Vm, VmContext, VmState};
 
 pub use encoding::{deblob, encode_program, Deblob, DecodeError};
 
