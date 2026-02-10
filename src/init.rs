@@ -25,7 +25,7 @@ pub fn initialize_program(
     Some((code, registers, memory))
 }
 
-pub fn parse_program_segments(program: &[u8]) -> Result<ProgramSegments, InitializeProgramError> {
+pub fn parse_program_segments<'a>(program: &'a [u8]) -> Result<ProgramSegments<'a>, InitializeProgramError> {
     if program.len() < 15 {
         return Err(InitializeProgramError::InsufficientBytes);
     }
