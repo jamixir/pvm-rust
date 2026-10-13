@@ -1,19 +1,16 @@
 # pvm-rust
 
-A Rust implementation of the Polkadot Virtual Machine (PVM), the RISC-V-based VM that runs
-JAM services, written from the [JAM Gray Paper](https://graypaper.com).
+The Polkadot Virtual Machine (PVM) in Rust, implemented from the
+[JAM Gray Paper](https://graypaper.com). [Jamixir](https://jamixir.org), an Elixir JAM
+client, runs it through a Rustler NIF. The crate itself has no Elixir dependency.
 
-This is the PVM inside [Jamixir](https://jamixir.org), the Elixir JAM client that was
-awarded JAM Prize Milestone 1. The node calls it through a Rustler NIF; this crate is the
-VM itself and has no Elixir dependency.
-
-## What's in it
+## Layout
 
 - `core`: memory, registers, program and bitmask handling
 - `encoding`: program blob decoding (`deblob`) and encoding
-- `init`: standard program initialisation and memory layout
-- `vm`: instruction dispatch, single-stepping, gas accounting, child VM instances, tracing
-- `execution`: entry points for running disassembled or linked programs
+- `init`: program initialisation and memory layout
+- `vm`: instruction dispatch, single-step execution, gas, child instances, tracing
+- `execution`: entry points for disassembled and linked programs
 
 ## Tests
 
@@ -22,10 +19,9 @@ git clone https://github.com/jamixir/jamtestvectors ../pvm-test-vectors
 cargo test
 ```
 
-Unit tests run on their own. The `vectors` suite runs the PVM test vectors and expects them
-at `../pvm-test-vectors/pvm/programs/`; without that checkout those tests fail.
+The unit tests need nothing else. The `vectors` suite reads the PVM test vectors from
+`../pvm-test-vectors/pvm/programs/`.
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT), at your option.
+[Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option.
