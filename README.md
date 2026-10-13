@@ -3,7 +3,7 @@
 A Rust implementation of the Polkadot Virtual Machine (PVM), the RISC-V-based VM that runs
 JAM services, written from the [JAM Gray Paper](https://graypaper.com).
 
-This is the PVM inside [Jamixir](https://jamixir.com), the Elixir JAM client that was
+This is the PVM inside [Jamixir](https://jamixir.org), the Elixir JAM client that was
 awarded JAM Prize Milestone 1. The node calls it through a Rustler NIF; this crate is the
 VM itself and has no Elixir dependency.
 
